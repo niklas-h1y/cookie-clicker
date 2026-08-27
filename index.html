@@ -80,39 +80,35 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        const SUPABASE_URL = "https://supabase.co";
-        const rpcUrl = "https://supabase.co";
+        const BASE_URL = "https://supabase.co";
         const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YmNzaGNsbWttZmJ5Z3Nodmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3ODg3NTIsImV4cCI6MjA0MDM2NDc1Mn0.39-Y8vL6_gY-g1C5wS4_WwK4_Y-g1C5wS4_WwK4_Y-g";
 
-        // 1. Zuerst das Local-Backup aus deinem Tablet laden
-        let currentGlobalScore = parseInt(localStorage.getItem('my_cookie_clicks')) || 0;
-        counterEl.innerText = currentGlobalScore.toLocaleString();
+        let localScore = parseInt(localStorage.getItem('my_cookie_clicks')) || 0;
+        let globalHighestScore = 0;
 
         const headers = {
             "apikey": anonKey,
             "Authorization": `Bearer ${anonKey}`,
-            "Content-Type": "application/json"
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
         };
 
-        // Funktion: Spielstand vom Server laden
+        // Funktion: Weltrekord laden
         function loadScoreFromServer() {
-            fetch(SUPABASE_URL, { method: "GET", headers: headers })
+            fetch(`${BASE_URL}?id=eq.global_record`, { method: "GET", headers: headers })
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
                     let serverValue = parseInt(data[0].clicks) || 0;
-                    if (serverValue > currentGlobalScore) {
-                        currentGlobalScore = serverValue;
-                        counterEl.innerText = currentGlobalScore.toLocaleString();
-                        // Auch den höheren Serverwert direkt im Tablet absichern
-                        localStorage.setItem('my_cookie_clicks', currentGlobalScore);
-                    }
+                    globalHighestScore = serverValue;
+                    
+                    let displayScore = Math.max(localScore, globalHighestScore);
+                    counterEl.innerText = displayScore.toLocaleString();
                 }
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Alle 2 Sekunden live synchronisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
@@ -120,29 +116,30 @@
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Sofort hochzählen
-            currentGlobalScore++;
-            counterEl.innerText = currentGlobalScore.toLocaleString();
+            localScore++;
+            localStorage.setItem('my_cookie_clicks', localScore);
 
-            // 2. Klick BOMBENFEST im Tablet sichern (fällt beim Refresh nie wieder auf 0!)
-            localStorage.setItem('my_cookie_clicks', currentGlobalScore);
+            let displayScore = Math.max(localScore, globalHighestScore);
+            counterEl.innerText = displayScore.toLocaleString();
 
-            // 3. Parallel an den Server schicken
-            fetch(rpcUrl, {
-                method: "POST",
-                headers: headers,
-                body: JSON.stringify({ row_id: "global_record" })
-            })
-            .then(res => res.json())
-            .then(newServerVal => {
-                let finalVal = parseInt(newServerVal) || currentGlobalScore;
-                if (finalVal > currentGlobalScore) {
-                    currentGlobalScore = finalVal;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                    localStorage.setItem('my_cookie_clicks', currentGlobalScore); //
-                }
-            })
-            .catch(err => console.error("Sende-Fehler:", err));
+            // SPERRE: Sende nur, wenn der lokale Wert höher ist als der bekannte Serverwert
+            if (localScore > globalHighestScore) {
+                // DER TRICK: Die URL verlangt, dass die clicks in der DB kleiner sein müssen als localScore
+                const updateUrl = `${BASE_URL}?id=eq.global_record&clicks=lt.${localScore}`;
+                
+                fetch(updateUrl, {
+                    method: "PATCH",
+                    headers: headers,
+                    body: JSON.stringify({ clicks: localScore })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        globalHighestScore = parseInt(data[0].clicks) || localScore;
+                    }
+                })
+                .catch(err => console.error("Sende-Fehler:", err));
+            }
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
