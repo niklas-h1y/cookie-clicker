@@ -84,12 +84,12 @@
 
         let localHighestScore = 0;
 
-        // Funktion: Liest die Daten als einfachen Text statt als JSON
+        // Funktion: Liest die Daten als einfachen Text vom Server
         function loadScoreFromServer() {
             fetch(serverUrl)
             .then(res => {
                 if (res.status === 404) return "0";
-                return res.text(); // Wichtig: .text() statt .json() nutzen!
+                return res.text(); // Text-Auslesung verhindert Absturz
             })
             .then(val => {
                 let serverValue = parseInt(val) || 0;
@@ -113,7 +113,7 @@
             localHighestScore++;
             counterEl.innerText = localHighestScore.toLocaleString();
 
-            // Wert direkt als pure Zahl an den Server senden
+            // Wert direkt als Text an den Server senden
             fetch(serverUrl, {
                 method: "POST",
                 body: localHighestScore.toString()
