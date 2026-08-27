@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
-    <!-- Die offizielle KVdb-Bibliothek laden, um Fehler auf Tablets zu verhindern -->
-    <script src="https://unpkg.com/kvdb.io@v1.0"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -81,21 +79,29 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Nutzt deine exakte Bucket-ID über das offizielle KVdb-System
-        const bucket = KVdb.bucket('EAM71nkDKB4vF1egpkdB9P');
+        // Deine feste Wunsch-URL
+        const targetUrl = "https://kvdb.io";
+        
+        // Wir leiten JEDE Anfrage durch einen CORS-Proxy um, damit dein Tablet es nicht blockiert
+        const proxyUrl = "https://corsproxy.io?" + encodeURIComponent(targetUrl);
 
-        let currentGlobalScore = 0;
+        let localScore = 0;
+        let globalHighestScore = 0;
 
-        // Funktion 1: Den aktuellen Zählerstand live vom Server abfragen
+        // Funktion 1: Den aktuellen Zählerstand sicher über den Proxy laden
         function loadScoreFromServer() {
-            bucket.get('clicks')
+            fetch(proxyUrl)
+            .then(res => {
+                if (res.status === 404) return "0";
+                return res.text();
+            })
             .then(val => {
                 let serverValue = parseInt(val) || 0;
-                // Nur updaten, wenn der Serverwert weitergezählt hat
-                if (serverValue > currentGlobalScore) {
-                    currentGlobalScore = serverValue;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                }
+                globalHighestScore = serverValue;
+                
+                // Zeige den jeweils höchsten Wert an
+                let displayScore = Math.max(localScore, globalHighestScore);
+                counterEl.innerText = displayScore.toLocaleString();
             })
             .catch(err => console.error("Ladefehler:", err));
         }
@@ -104,25 +110,26 @@
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Zählt lokal hoch und sendet ein echtes "+1" an den Server
+        // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Visuell sofort hochzählen, damit das Spiel flüssig wirkt
-            currentGlobalScore++;
-            counterEl.innerText = currentGlobalScore.toLocaleString();
+            localScore++;
+            
+            let displayScore = Math.max(localScore, globalHighestScore);
+            counterEl.innerText = displayScore.toLocaleString();
 
-            // Offizieller Befehl: Erhöhe den Schlüssel 'clicks' auf dem Server atomar um 1
-            bucket.incr('clicks', 1)
-            .then(newServerVal => {
-                // Der Server antwortet direkt mit der echten neuen Gesamtzahl aller Spieler
-                let finalVal = parseInt(newServerVal) || currentGlobalScore;
-                if (finalVal > currentGlobalScore) {
-                    currentGlobalScore = finalVal;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                }
-            })
-            .catch(err => console.error("Speicherfehler:", err));
+            // SPERRE: Nur an den Server senden, wenn du den weltweiten Rekord brichst!
+            if (localScore > globalHighestScore) {
+                fetch(proxyUrl, {
+                    method: "POST",
+                    body: localScore.toString()
+                })
+                .then(() => {
+                    globalHighestScore = localScore;
+                })
+                .catch(err => console.error("Sende-Fehler:", err));
+            }
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
