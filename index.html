@@ -79,12 +79,13 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Jetzt mit dem korrekten Schlüssel "kekse" am Ende der URL!
+        // Deine exakte URL mit dem Schlüsselordner "highscore" am Ende
         const serverUrl = "https://kvdb.io";
 
-        let currentGlobalScore = 0;
+        let localScore = 0;
+        let globalHighestScore = 0;
 
-        // Funktion 1: Holt den aktuellen weltweiten Stand vom Server
+        // Funktion 1: Den aktuellen Weltrekord vom Server laden
         function loadScoreFromServer() {
             fetch(serverUrl)
             .then(res => {
@@ -93,39 +94,40 @@
             })
             .then(val => {
                 let serverValue = parseInt(val) || 0;
-                if (serverValue > currentGlobalScore) {
-                    currentGlobalScore = serverValue;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                }
+                globalHighestScore = serverValue;
+                
+                // Zeige immer den höchsten Wert an (entweder den vom Server oder den eigenen)
+                let displayScore = Math.max(localScore, globalHighestScore);
+                counterEl.innerText = displayScore.toLocaleString();
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Beim Start ausführen und alle 2 Sekunden aktualisieren
+        // Beim Start laden und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Erhöht den Zähler lokal und schickt ein atomares "+1" an den Server
+        // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            currentGlobalScore++;
-            counterEl.innerText = currentGlobalScore.toLocaleString();
+            localScore++;
+            
+            // Anzeige sofort aktualisieren
+            let displayScore = Math.max(localScore, globalHighestScore);
+            counterEl.innerText = displayScore.toLocaleString();
 
-            // Das "+1" per PATCH an das "kekse"-Feld senden
-            fetch(serverUrl, {
-                method: "PATCH",
-                body: "+1"
-            })
-            .then(res => res.text())
-            .then(newServerVal => {
-                let finalVal = parseInt(newServerVal) || currentGlobalScore;
-                if (finalVal > currentGlobalScore) {
-                    currentGlobalScore = finalVal;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                }
-            })
-            .catch(err => console.error("Sende-Fehler:", err));
+            // SPERRE: Nur an den Server senden, wenn du den weltweiten Rekord eingenommen hast!
+            if (localScore > globalHighestScore) {
+                fetch(serverUrl, {
+                    method: "POST",
+                    body: localScore.toString()
+                })
+                .then(() => {
+                    globalHighestScore = localScore;
+                })
+                .catch(err => console.error("Sende-Fehler:", err));
+            }
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
