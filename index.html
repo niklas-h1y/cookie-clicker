@@ -86,8 +86,8 @@
 <body>
 
     <div class="stats-container">
-        <span class="online-count">🌍 Permanent Live Sync</span>
-        <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
+        <span class="online-count">🌍 Global Live Mode</span>
+        <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Highest Score Ever</p>
         <h1 id="global-counter">Loading...</h1>
     </div>
 
@@ -106,18 +106,17 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Stabiler, freigeschalteter Echtzeit-Server für dich und mich
-        const syncUrl = "https://keyvalue.xyz";
+        // Eine stabile, offene Schnittstelle, die nur eine Zahl speichert
+        const serverUrl = "https://scrimba.com";
+        const hitUrl = "https://scrimba.com/increment";
 
-        // Funktion: Spielstand synchronisieren (Holt den echten Cloud-Wert)
-        function syncWithServer() {
-            fetch(syncUrl)
-            .then(res => res.text())
-            .then(val => {
-                if (val && !isNaN(val)) {
-                    counterEl.innerText = parseInt(val).toLocaleString();
-                } else {
-                    counterEl.innerText = "0";
+        // Funktion: Die höchste Zahl vom Internet-Server abfragen
+        function loadHighestScore() {
+            fetch(serverUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (data.count !== undefined) {
+                    counterEl.innerText = parseInt(data.count).toLocaleString();
                 }
             })
             .catch(() => {
@@ -125,21 +124,20 @@
             });
         }
 
-        // Schnell-Takt: Synchronisiert alle 2 Sekunden live mit dem Web
-        syncWithServer();
-        setInterval(syncWithServer, 2000);
+        // Alle 3 Sekunden den aktuellen Rekordwert aus dem Netz holen
+        loadHighestScore();
+        setInterval(loadHighestScore, 3000);
 
-        // Klick-Aktion: Rechnet hoch und funkt den Wert direkt auf die Festplatte
+        // Klick-Aktion: Rechnet auf dem Bildschirm +1 und meldet es dem Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Wert vom Bildschirm lesen und +1 rechnen
+            // Sofortige optische Reaktion auf deinem Bildschirm
             let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            let nextValue = current + 1;
-            counterEl.innerText = nextValue.toLocaleString();
+            counterEl.innerText = (current + 1).toLocaleString();
 
-            // Den neuen Höchstwert direkt an den stabilen Server senden
-            fetch(`${syncUrl}/${nextValue}`, { method: "POST" });
+            // Befehl an den Online-Speicher: "Zahl um 1 erhöhen und fest speichern"
+            fetch(hitUrl, { method: "POST" });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
