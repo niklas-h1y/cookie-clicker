@@ -106,26 +106,24 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Permanenter, gesicherter Cloud-Speicherort für deine Klicks
-        const storageUrl = "https://kvdb.io";
+        // Vollkommen freie, offene Zähler-Schnittstelle ohne Schreibsperren
+        const getUrl = "https://moecounter.org";
+        const hitUrl = "https://moecounter.org";
 
-        let currentGlobalCount = 0;
+        let currentScore = 0;
 
-        // Funktion: Den echten, permanenten Spielstand laden
-        function fetchPermanentScore() {
-            fetch(storageUrl)
-            .then(res => res.text())
-            .then(val => {
-                if (val && !isNaN(val)) {
-                    let serverNum = parseInt(val);
-                    // Verhindert das Zurückspringen bei Überschneidungen
-                    if (serverNum >= currentGlobalCount) {
-                        currentGlobalCount = serverNum;
-                        counterEl.innerText = currentGlobalCount.toLocaleString();
+        // Funktion: Den echten weltweiten Spielstand laden
+        function getGlobalScore() {
+            fetch(getUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (data.count !== undefined) {
+                    let serverVal = parseInt(data.count) || 0;
+                    // Der Zähler darf niemals kleiner werden als unser aktueller Stand
+                    if (serverVal >= currentScore) {
+                        currentScore = serverVal;
+                        counterEl.innerText = currentScore.toLocaleString();
                     }
-                } else {
-                    // Falls die Datenbank leer ist, starten wir bei 0
-                    counterEl.innerText = "0";
                 }
             })
             .catch(() => {
@@ -133,22 +131,28 @@
             });
         }
 
-        // Abfrage-Intervall auf exakt 3 Sekunden eingestellt
-        fetchPermanentScore();
-        setInterval(fetchPermanentScore, 3000);
+        // Alle 3 Sekunden synchronisieren
+        getGlobalScore();
+        setInterval(getGlobalScore, 3000);
 
-        // Klick-Aktion: Zählt sofort auf dem Bildschirm hoch und sichert es permanent in der Cloud
+        // Klick-Aktion: Zählt sofort optisch hoch und sendet den Klick an den Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Sofortige visuelle Rückmeldung
-            currentGlobalCount++;
-            counterEl.innerText = currentGlobalCount.toLocaleString();
+            currentScore++;
+            counterEl.innerText = currentScore.toLocaleString();
 
-            // Sende den neuen Höchstwert als Text-Payload an die permanente Cloud
-            fetch(storageUrl, {
-                method: "PUT",
-                body: currentGlobalCount.toString()
+            // Schicke den Klick ab. Der Server erhöht den Wert atomar im Hintergrund!
+            fetch(hitUrl)
+            .then(res => res.json())
+            .then(data => {
+                if (data.count !== undefined) {
+                    let freshServerVal = parseInt(data.count) || 0;
+                    if (freshServerVal > currentScore) {
+                        currentScore = freshServerVal;
+                        counterEl.innerText = currentScore.toLocaleString();
+                    }
+                }
             });
 
             createSparkle(e.clientX, e.clientY);
