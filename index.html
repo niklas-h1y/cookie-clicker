@@ -99,6 +99,7 @@
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
+                    // KORREKTUR: Daten liegen in einer Liste, wir müssen das erste Element [0] auslesen!
                     let serverValue = parseInt(data[0].clicks) || 0;
                     globalHighestScore = serverValue;
                     
@@ -122,9 +123,7 @@
             let displayScore = Math.max(localScore, globalHighestScore);
             counterEl.innerText = displayScore.toLocaleString();
 
-            // SPERRE: Sende nur, wenn der lokale Wert höher ist als der bekannte Serverwert
             if (localScore > globalHighestScore) {
-                // DER TRICK: Die URL verlangt, dass die clicks in der DB kleiner sein müssen als localScore
                 const updateUrl = `${BASE_URL}?id=eq.global_record&clicks=lt.${localScore}`;
                 
                 fetch(updateUrl, {
