@@ -61,7 +61,7 @@
 <body>
 
     <div class="stats-container">
-        <h1 id="global-counter">Loading...</h1>
+        <h1 id="global-counter">0</h1>
     </div>
 
     <div class="cookie-container" id="cookie-btn">
@@ -79,46 +79,46 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Deine eigene kvdb.io-URL
+        // Deine kvdb.io-URL
         const serverUrl = "https://kvdb.io";
 
         let localHighestScore = 0;
 
-        // Funktion: Die Zahl vom Server laden
+        // Funktion: Liest die Daten als einfachen Text statt als JSON
         function loadScoreFromServer() {
             fetch(serverUrl)
             .then(res => {
                 if (res.status === 404) return "0";
-                return res.text();
+                return res.text(); // Wichtig: .text() statt .json() nutzen!
             })
             .then(val => {
                 let serverValue = parseInt(val) || 0;
-                if (serverValue >= localHighestScore) {
+                // Nur updaten, wenn der Serverwert höher als unser lokaler Wert ist
+                if (serverValue > localHighestScore) {
                     localHighestScore = serverValue;
                     counterEl.innerText = localHighestScore.toLocaleString();
                 }
             })
-            .catch(() => {
-                if (counterEl.innerText === "Loading...") counterEl.innerText = "0";
-            });
+            .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Alle 3 Sekunden mit dem Server synchronisieren
+        // Direkt beim Start laden und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
-        setInterval(loadScoreFromServer, 3000);
+        setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Zählt hoch und speichert es online
+        // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
             localHighestScore++;
             counterEl.innerText = localHighestScore.toLocaleString();
 
+            // Wert direkt als pure Zahl an den Server senden
             fetch(serverUrl, {
                 method: "POST",
                 body: localHighestScore.toString()
             })
-            .catch(err => console.error("Fehler:", err));
+            .catch(err => console.error("Sende-Fehler:", err));
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
