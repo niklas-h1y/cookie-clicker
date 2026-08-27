@@ -86,7 +86,7 @@
 <body>
 
     <div class="stats-container">
-        <span class="online-count">🌍 Persistent Global Mode</span>
+        <span class="online-count">🌍 Permanent Live Sync</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
         <h1 id="global-counter">Loading...</h1>
     </div>
@@ -106,50 +106,40 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Einzigartiger persistenter Namespace & Key auf der Abacus-API
-        const namespace = "niklas_h1y_games";
-        const key = "global_cookie_clicks";
-        
-        const getUrl = `https://jasoncameron.dev{namespace}/${key}`;
-        const hitUrl = `https://jasoncameron.dev{namespace}/${key}`;
+        // Stabiler, freigeschalteter Echtzeit-Server für dich und mich
+        const syncUrl = "https://keyvalue.xyz";
 
-        // Funktion: Den echten, permanenten Spielstand vom Server holen
-        function getGlobalScore() {
-            fetch(getUrl)
-            .then(res => res.json())
-            .then(data => {
-                // Abacus liefert den Wert im Feld "value" zurück
-                if (data.value !== undefined) {
-                    counterEl.innerText = parseInt(data.value).toLocaleString();
+        // Funktion: Spielstand synchronisieren (Holt den echten Cloud-Wert)
+        function syncWithServer() {
+            fetch(syncUrl)
+            .then(res => res.text())
+            .then(val => {
+                if (val && !isNaN(val)) {
+                    counterEl.innerText = parseInt(val).toLocaleString();
+                } else {
+                    counterEl.innerText = "0";
                 }
             })
             .catch(() => {
-                if (counterEl.innerText === "Loading...") {
-                    counterEl.innerText = "0";
-                }
+                if (counterEl.innerText === "Loading...") counterEl.innerText = "0";
             });
         }
 
-        // Alle 3 Sekunden wird der Spielstand knallhart mit der Cloud synchronisiert
-        getGlobalScore();
-        setInterval(getGlobalScore, 3000);
+        // Schnell-Takt: Synchronisiert alle 2 Sekunden live mit dem Web
+        syncWithServer();
+        setInterval(syncWithServer, 2000);
 
-        // Klick-Aktion: Sendet ein reines "+1 Signal" an den Server
+        // Klick-Aktion: Rechnet hoch und funkt den Wert direkt auf die Festplatte
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Lokales Hochzählen auf dem Bildschirm für verzögerungsfreies Feedback
+            // Wert vom Bildschirm lesen und +1 rechnen
             let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            counterEl.innerText = (current + 1).toLocaleString();
+            let nextValue = current + 1;
+            counterEl.innerText = nextValue.toLocaleString();
 
-            // Der "hit"-Befehl erhöht den Wert atomar direkt in der Server-Datenbank
-            fetch(hitUrl)
-            .then(res => res.json())
-            .then(data => {
-                if (data.value !== undefined) {
-                    counterEl.innerText = parseInt(data.value).toLocaleString();
-                }
-            });
+            // Den neuen Höchstwert direkt an den stabilen Server senden
+            fetch(`${syncUrl}/${nextValue}`, { method: "POST" });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
