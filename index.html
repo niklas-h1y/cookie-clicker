@@ -79,12 +79,12 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Deine kvdb.io-URL
-        const serverUrl = "https://kvdb.io/EAM71nkDKB4vF1egpkdB9P/";
+        // Jetzt mit dem korrekten Schlüssel "kekse" am Ende der URL!
+        const serverUrl = "https://kvdb.io";
 
-        let localHighestScore = 0;
+        let currentGlobalScore = 0;
 
-        // Funktion: Lädt den aktuellen Wert als Text vom Server
+        // Funktion 1: Holt den aktuellen weltweiten Stand vom Server
         function loadScoreFromServer() {
             fetch(serverUrl)
             .then(res => {
@@ -93,9 +93,9 @@
             })
             .then(val => {
                 let serverValue = parseInt(val) || 0;
-                if (serverValue > localHighestScore) {
-                    localHighestScore = serverValue;
-                    counterEl.innerText = localHighestScore.toLocaleString();
+                if (serverValue > currentGlobalScore) {
+                    currentGlobalScore = serverValue;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
                 }
             })
             .catch(err => console.error("Ladefehler:", err));
@@ -105,17 +105,25 @@
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion
+        // Klick-Aktion: Erhöht den Zähler lokal und schickt ein atomares "+1" an den Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            localHighestScore++;
-            counterEl.innerText = localHighestScore.toLocaleString();
+            currentGlobalScore++;
+            counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Wert an den Server senden
+            // Das "+1" per PATCH an das "kekse"-Feld senden
             fetch(serverUrl, {
-                method: "POST",
-                body: localHighestScore.toString()
+                method: "PATCH",
+                body: "+1"
+            })
+            .then(res => res.text())
+            .then(newServerVal => {
+                let finalVal = parseInt(newServerVal) || currentGlobalScore;
+                if (finalVal > currentGlobalScore) {
+                    currentGlobalScore = finalVal;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                }
             })
             .catch(err => console.error("Sende-Fehler:", err));
 
