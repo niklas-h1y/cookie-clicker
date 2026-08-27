@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
+    <!-- Die offizielle KVdb-Bibliothek laden -->
+    <script src="https://unpkg.com/kvdb.io@v1.0"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -79,38 +81,31 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // DEINE EXAKTE WUNSCH-URL (Ohne jeden Zusatz)
-        const serverUrl = "https://kvdb.io/EAM71nkDKB4vF1egpkdB9P/";
-        
-        // Der sichere Tunnel gegen Tablet-Blockaden (CORS-Proxy)
-        const proxyGetUrl = `https://allorigins.win{encodeURIComponent(serverUrl)}`;
+        // Nutzt deine exakte Bucket-ID über das offizielle KVdb-System
+        const kvdbStorage = KVdb.bucket('EAM71nkDKB4vF1egpkdB9P').localStorage();
 
         let localScore = 0;
         let globalHighestScore = 0;
 
-        // Funktion 1: Den Zähler über den sicheren Tunnel abfragen
+        // Funktion 1: Den aktuellen Zählerstand sicher vom Server abfragen
         function loadScoreFromServer() {
-            fetch(proxyGetUrl)
-            .then(res => {
-                if (res.ok) return res.json();
-                throw new Error('Fehler');
-            })
-            .then(data => {
-                // AllOrigins verpackt den Serverinhalt fehlerfrei in "contents"
-                let serverValue = parseInt(data.contents) || 0;
+            kvdbStorage.getItem('clicks')
+            .then(val => {
+                let serverValue = parseInt(val) || 0;
                 globalHighestScore = serverValue;
                 
+                // Den höchsten Wert auf dem Bildschirm anzeigen
                 let displayScore = Math.max(localScore, globalHighestScore);
                 counterEl.innerText = displayScore.toLocaleString();
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Direkt starten und alle 2 Sekunden aktualisieren
+        // Beim Start direkt laden und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Zählt hoch und speichert
+        // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
@@ -119,16 +114,13 @@
             let displayScore = Math.max(localScore, globalHighestScore);
             counterEl.innerText = displayScore.toLocaleString();
 
-            // Hochladeschutz: Nur senden, wenn du den Rekord brichst
+            // Nur speichern, wenn die eigene Zahl den weltweiten Rekord bricht
             if (localScore > globalHighestScore) {
-                fetch(serverUrl, {
-                    method: "POST",
-                    body: localScore.toString()
-                })
+                kvdbStorage.setItem('clicks', localScore.toString())
                 .then(() => {
                     globalHighestScore = localScore;
                 })
-                .catch(err => console.error("Sende-Fehler:", err));
+                .catch(err => console.error("Speicherfehler:", err));
             }
 
             if (navigator.vibrate) {
