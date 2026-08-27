@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
+    <!-- Offizielle KVdb-Bibliothek laden, um CORS-Fehler zu verhindern -->
+    <script src="https://unpkg.com/kvdb.io@v1.0"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -79,24 +81,20 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Deine exakte URL mit dem Schlüsselordner "highscore" am Ende
-        const serverUrl = "https://kvdb.io";
+        // Verbindung zum KVdb-Bucket über die offizielle Bibliothek herstellen
+        const bucket = KVdb.bucket('EAM71nkDKB4vF1egpkdB9P');
 
         let localScore = 0;
         let globalHighestScore = 0;
 
-        // Funktion 1: Den aktuellen Weltrekord vom Server laden
+        // Funktion 1: Den Highscore sicher über die Bibliothek laden
         function loadScoreFromServer() {
-            fetch(serverUrl)
-            .then(res => {
-                if (res.status === 404) return "0";
-                return res.text();
-            })
+            bucket.get('highscore')
             .then(val => {
                 let serverValue = parseInt(val) || 0;
                 globalHighestScore = serverValue;
                 
-                // Zeige immer den höchsten Wert an (entweder den vom Server oder den eigenen)
+                // Höchsten Wert anzeigen
                 let displayScore = Math.max(localScore, globalHighestScore);
                 counterEl.innerText = displayScore.toLocaleString();
             })
@@ -113,20 +111,16 @@
             
             localScore++;
             
-            // Anzeige sofort aktualisieren
             let displayScore = Math.max(localScore, globalHighestScore);
             counterEl.innerText = displayScore.toLocaleString();
 
-            // SPERRE: Nur an den Server senden, wenn du den weltweiten Rekord eingenommen hast!
+            // Nur speichern, wenn man den weltweiten Highscore geschlagen hat
             if (localScore > globalHighestScore) {
-                fetch(serverUrl, {
-                    method: "POST",
-                    body: localScore.toString()
-                })
+                bucket.set('highscore', localScore.toString())
                 .then(() => {
                     globalHighestScore = localScore;
                 })
-                .catch(err => console.error("Sende-Fehler:", err));
+                .catch(err => console.error("Speicherfehler:", err));
             }
 
             if (navigator.vibrate) {
