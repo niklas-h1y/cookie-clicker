@@ -64,7 +64,7 @@
 <body>
 
     <div class="stats-container">
-        <!-- Hier steht der weltweite, synchronisierte Highscore -->
+        <!-- Der eine, gemeinsame globale Keks-Zähler -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -83,8 +83,7 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Ein öffentliches, freies Test-Backend von Firebase für dein Spiel.
-        // Völlig legal und sicher auf GitHub teilbar!
+        // Sicheres, freies Firebase-Backend für dein globales Spiel
         const firebaseConfig = {
             databaseURL: "https://firebasedatabase.app"
         };
@@ -94,20 +93,17 @@
         const database = firebase.database();
         const scoreRef = database.ref('highest_score');
 
-        let localScore = 0;
-        let currentGlobalHighest = 0;
+        // Wir haben nur noch EINE einzige Zahl für das gesamte Spiel
+        let currentGlobalScore = 0;
 
         // ECHZEIT-SYNCHRONISATION:
-        // Firebase lauscht automatisch auf Veränderungen. Sobald IRGENDWER auf der Welt
-        // den Highscore bricht, ändert sich die Zahl hier auf JEDEM Bildschirm in unter 1 Sekunde!
+        // Firebase passt jede Sekunde auf. Sobald IRGENDWER auf der Welt klickt,
+        // ändert sich die Zahl auf ALLEN Bildschirmen gleichzeitig in Echtzeit.
         scoreRef.on('value', (snapshot) => {
             const serverValue = snapshot.val();
             if (serverValue !== null) {
-                currentGlobalHighest = parseInt(serverValue) || 0;
-                
-                // Aktualisiere das UI mit dem höchsten bekannten Wert
-                let displayValue = Math.max(localScore, currentGlobalHighest);
-                counterEl.innerText = displayValue.toLocaleString();
+                currentGlobalScore = parseInt(serverValue) || 0;
+                counterEl.innerText = currentGlobalScore.toLocaleString();
             }
         });
 
@@ -115,15 +111,16 @@
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            localScore++;
-            
-            let displayValue = Math.max(localScore, currentGlobalHighest);
-            counterEl.innerText = displayValue.toLocaleString();
+            // 1. Erhöhe den aktuellen globalen Wert direkt auf dem Bildschirm um 1
+            currentGlobalScore++;
+            counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Hochlade-Schutz: Nur in die Cloud schieben, wenn du den weltweiten Rekord brichst!
-            if (localScore > currentGlobalHighest) {
-                scoreRef.set(localScore);
-            }
+            // 2. Nutze die "transaction" Funktion von Firebase.
+            // Das sorgt dafür, dass die Zahl auf dem Google-Server absolut fehlerfrei um 1 hochgezählt wird,
+            // selbst wenn 100 Spieler in der exakt selben Millisekunde klicken!
+            scoreRef.transaction((currentValue) => {
+                return (currentValue || 0) + 1;
+            });
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
