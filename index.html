@@ -88,14 +88,14 @@
     <div class="stats-container">
         <span class="online-count">🌍 Global Live Mode</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
-        <h1 id="global-counter">Loading...</h1>
+        <h1 id="global-counter">0</h1>
     </div>
 
     <div class="cookie-container" id="cookie-btn">
         <div class="cookie">
             <div class="chip"></div>
             <div class="chip"></div>
-            <div class="chip ="></div>
+            <div class="chip"></div>
             <div class="chip"></div>
             <div class="chip"></div>
             <div class="chip"></div>
@@ -106,41 +106,51 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Vollkommen freier, uneingeschränkter globaler Zähler-Dienst
-        const counterName = "niklash1y_global_clicks_2026";
-        const getUrl = `https://getloli.com{counterName}`;
-        const hitUrl = `https://getloli.com{counterName}?type=increment`;
+        // Komplett freie Live-Zähler-API ohne jegliche Schreibblockaden
+        const counterKey = "niklash1y_cookie_game_2026";
+        const getUrl = `https://scrimba.com{counterKey}`;
+        const hitUrl = `https://scrimba.com{counterKey}/increment`;
 
-        // Funktion: Aktuellen globalen Wert vom Server abrufen
+        // 1. Lokalen Backup-Speicher auslesen
+        let localBackup = parseInt(localStorage.getItem('cookie_backup')) || 0;
+        counterEl.innerText = localBackup.toLocaleString();
+
+        // Funktion: Spielstand aus der weltweiten Cloud abrufen
         function getGlobalScore() {
             fetch(getUrl)
             .then(res => res.json())
             .then(data => {
                 if (data.count !== undefined) {
-                    counterEl.innerText = data.count.toLocaleString();
+                    // Nur aktualisieren, wenn der Serverwert höher als das lokale Backup ist
+                    let serverVal = parseInt(data.count) || 0;
+                    let highest = Math.max(serverVal, localBackup);
+                    counterEl.innerText = highest.toLocaleString();
+                    localStorage.setItem('cookie_backup', highest);
                 }
             })
             .catch(() => {
-                if(counterEl.innerText === "Loading...") {
-                    counterEl.innerText = "0";
-                }
+                // Bei Netzwerkfehlern bleibt einfach der lokale Wert stehen
+                counterEl.innerText = localBackup.toLocaleString();
             });
         }
 
-        // Automatische Echtzeit-Aktualisierung alle 1,5 Sekunden
+        // Automatische Echtzeit-Synchronisation alle 1,5 Sekunden
         getGlobalScore();
         setInterval(getGlobalScore, 1500);
 
-        // Klick-Aktion: Sendet den Klick live an das offene API-Netzwerk
+        // Klick-Aktion: Zählt lokal SOFORT hoch und meldet es parallel der Cloud
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Anzeige auf dem Bildschirm sofort erhöhen (für flüssiges Gefühl)
             let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            counterEl.innerText = (current + 1).toLocaleString();
+            localBackup = current + 1;
+            
+            // Bildschirm-Zähler knallt sofort ohne jede Verzögerung nach oben!
+            counterEl.innerText = localBackup.toLocaleString();
+            localStorage.setItem('cookie_backup', localBackup);
 
-            // Klick an den Server abschicken
-            fetch(hitUrl);
+            // Den Klick im Hintergrund an die offene Cloud schicken
+            fetch(hitUrl, { method: "POST" });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
