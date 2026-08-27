@@ -95,7 +95,7 @@
         <div class="cookie">
             <div class="chip"></div>
             <div class="chip"></div>
-            <div class="chip"></div>
+            <div class="chip ="></div>
             <div class="chip"></div>
             <div class="chip"></div>
             <div class="chip"></div>
@@ -106,46 +106,41 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Stabiler, geteilter öffentlicher Zähler-Endpunkt
-        const binUrl = "https://jsonbin.io";
+        // Vollkommen freier, uneingeschränkter globaler Zähler-Dienst
+        const counterName = "niklash1y_global_clicks_2026";
+        const getUrl = `https://getloli.com{counterName}`;
+        const hitUrl = `https://getloli.com{counterName}?type=increment`;
 
-        // Spielstand live laden
+        // Funktion: Aktuellen globalen Wert vom Server abrufen
         function getGlobalScore() {
-            fetch(binUrl, {
-                headers: { "X-Bin-Meta": "false" }
-            })
+            fetch(getUrl)
             .then(res => res.json())
             .then(data => {
-                if (data.clicks !== undefined) {
-                    counterEl.innerText = parseInt(data.clicks).toLocaleString();
+                if (data.count !== undefined) {
+                    counterEl.innerText = data.count.toLocaleString();
                 }
             })
             .catch(() => {
-                // Fallback, falls die API kurz blockiert
                 if(counterEl.innerText === "Loading...") {
                     counterEl.innerText = "0";
                 }
             });
         }
 
-        // Automatische Synchronisation alle 2 Sekunden
+        // Automatische Echtzeit-Aktualisierung alle 1,5 Sekunden
         getGlobalScore();
-        setInterval(getGlobalScore, 2000);
+        setInterval(getGlobalScore, 1500);
 
-        // Klick-Aktion: Rechnet +1 und sendet es live an den stabilen Server
+        // Klick-Aktion: Sendet den Klick live an das offene API-Netzwerk
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
+            // Anzeige auf dem Bildschirm sofort erhöhen (für flüssiges Gefühl)
             let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            let nextValue = current + 1;
-            counterEl.innerText = nextValue.toLocaleString();
+            counterEl.innerText = (current + 1).toLocaleString();
 
-            // Wert an den Server übermitteln
-            fetch(binUrl, {
-                method: "PUT",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ clicks: nextValue })
-            });
+            // Klick an den Server abschicken
+            fetch(hitUrl);
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
