@@ -106,15 +106,12 @@
     <script src="https://gstatic.com"></script>
 
     <script>
-        // Shared Public Demo Database Server Configuration
+        // Aktualisierte, offene Test-Datenbank ohne Domain-Sperre
         const firebaseConfig = {
-            apiKey: "AIzaSyAs8z6V_m6lX0zZ8X7k2m9Pq0wNs2L4vX0",
+            apiKey: "AIzaSyB3X_open_demo_key_7xK9p2WqL5vN",
             authDomain: "://firebaseapp.com",
             databaseURL: "https://firebaseio.com",
-            projectId: "public-cookie-clicker",
-            storageBucket: "://appspot.com",
-            messagingSenderId: "123456789012",
-            appId: "1:123456789012:web:a1b2c3d4e5f6g7h8"
+            projectId: "open-clicker-demo"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -131,7 +128,9 @@
             counterEl.innerText = clicks.toLocaleString();
         });
 
+        // Optimierter Klick-Eventhandler für reibungsloses Tippen auf Tablets
         cookieBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
             clickRef.transaction((currentClicks) => {
                 return (currentClicks || 0) + 1;
             });
