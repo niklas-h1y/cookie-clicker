@@ -29,12 +29,12 @@
         }
         .online-count {
             font-size: 1.1rem;
-            color: #3498db;
+            color: #2ecc71;
             font-weight: bold;
-            background: rgba(52, 152, 219, 0.1);
+            background: rgba(46, 204, 113, 0.1);
             padding: 8px 20px;
             border-radius: 20px;
-            border: 1px solid rgba(52, 152, 219, 0.3);
+            border: 1px solid rgba(46, 204, 113, 0.3);
         }
         .cookie-container {
             position: relative;
@@ -86,9 +86,9 @@
 <body>
 
     <div class="stats-container">
-        <span class="online-count">🔑 No Key Mode</span>
+        <span class="online-count">🌍 Global Live Mode</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
-        <h1 id="global-counter">0</h1>
+        <h1 id="global-counter">Loading...</h1>
     </div>
 
     <div class="cookie-container" id="cookie-btn">
@@ -103,40 +103,43 @@
     </div>
 
     <script>
-        // Ein einzigartiger Name für deinen Raum im öffentlichen Speicher
-        const namespace = "niklash1y_cookie_clicker_2026";
-        const key = "clicks";
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
+        const url = "https://keyvalue.xyz";
 
-        // Funktion zum Laden des aktuellen Spielstands vom Server
-        function updateScore() {
-            fetch(`https://countapi.xyz{namespace}/${key}`)
-                .then(res => res.json())
-                .then(data => {
-                    if(data.value !== undefined) {
-                        counterEl.innerText = data.value.toLocaleString();
+        // Funktion: Spielstand live aus dem Internet abrufen
+        function getGlobalScore() {
+            fetch(url)
+                .then(res => res.text())
+                .then(val => {
+                    if (val && !isNaN(val)) {
+                        counterEl.innerText = parseInt(val).toLocaleString();
+                    } else {
+                        // Falls der Zähler auf dem Server leer ist, setzen wir ihn auf 10
+                        fetch(url + "/10", { method: "POST" });
+                        counterEl.innerText = "10";
                     }
                 })
                 .catch(() => {
-                    // Falls der Raum neu ist, erstellen wir ihn mit 0
-                    fetch(`https://countapi.xyz{namespace}&key=${key}&value=0`);
+                    counterEl.innerText = "Offline";
                 });
         }
 
-        // Lade den Score sofort beim Start und danach alle 2 Sekunden neu
-        updateScore();
-        setInterval(updateScore, 2000);
+        // Alle 1,5 Sekunden den Spielstand mit dem Internet synchronisieren
+        getGlobalScore();
+        setInterval(getGlobalScore, 1500);
 
-        // Klick-Aktion: Zählt auf dem öffentlichen Server +1 dazu
+        // Klick-Aktion: Sendet den Klick live ins weltweite Netz
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            fetch(`https://countapi.xyz{namespace}/${key}`)
-                .then(res => res.json())
-                .then(data => {
-                    counterEl.innerText = data.value.toLocaleString();
-                });
+            // Aktuellen Textwert nehmen und +1 rechnen
+            let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
+            let nextValue = current + 1;
+            counterEl.innerText = nextValue.toLocaleString();
+
+            // Wert direkt an den Server senden
+            fetch(`${url}/${nextValue}`, { method: "POST" });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
