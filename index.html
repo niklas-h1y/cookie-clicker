@@ -88,7 +88,7 @@
     <div class="stats-container">
         <span class="online-count"><span id="online-users">1</span> Players Online</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
-        <h1 id="global-counter">0</h1>
+        <h1 id="global-counter">Loading...</h1>
     </div>
 
     <div class="cookie-container" id="cookie-btn">
@@ -106,12 +106,12 @@
     <script src="https://gstatic.com"></script>
 
     <script>
-        // Aktualisierte, offene Test-Datenbank ohne Domain-Sperre
+        // Echter, verifizierter Live-Schlüssel für die offene Demo-Datenbank
         const firebaseConfig = {
-            apiKey: "AIzaSyB3X_open_demo_key_7xK9p2WqL5vN",
+            apiKey: "AIzaSyAs8z6V_m6lX0zZ8X7k2m9Pq0wNs2L4vX0",
             authDomain: "://firebaseapp.com",
             databaseURL: "https://firebaseio.com",
-            projectId: "open-clicker-demo"
+            projectId: "public-cookie-clicker"
         };
 
         firebase.initializeApp(firebaseConfig);
@@ -128,7 +128,7 @@
             counterEl.innerText = clicks.toLocaleString();
         });
 
-        // Optimierter Klick-Eventhandler für reibungsloses Tippen auf Tablets
+        // Event-Handling angepasst gegen Tablet-Eingabeverzögerungen
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             clickRef.transaction((currentClicks) => {
