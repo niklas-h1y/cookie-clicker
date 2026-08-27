@@ -79,49 +79,57 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Stabiler, mobiltauglicher Server mit deinem Bucket
-        const BUCKET_ID = "EAM71nkDKB4vF1egpkdB9P";
-        const getUrl = `https://jasoncameron.dev{BUCKET_ID}/cookies`;
-        const hitUrl = `https://jasoncameron.dev{BUCKET_ID}/cookies`;
+        // DEINE EXAKTE WUNSCH-URL (Ohne jeden Zusatz)
+        const serverUrl = "https://kvdb.io/EAM71nkDKB4vF1egpkdB9P/";
+        
+        // Der sichere Tunnel gegen Tablet-Blockaden (CORS-Proxy)
+        const proxyGetUrl = `https://allorigins.win{encodeURIComponent(serverUrl)}`;
 
-        let currentGlobalScore = 0;
+        let localScore = 0;
+        let globalHighestScore = 0;
 
-        // Funktion 1: Den aktuellen globalen Zählerstand laden
+        // Funktion 1: Den Zähler über den sicheren Tunnel abfragen
         function loadScoreFromServer() {
-            fetch(getUrl)
-            .then(res => res.json())
+            fetch(proxyGetUrl)
+            .then(res => {
+                if (res.ok) return res.json();
+                throw new Error('Fehler');
+            })
             .then(data => {
-                let serverValue = parseInt(data.value) || 0;
-                if (serverValue > currentGlobalScore) {
-                    currentGlobalScore = serverValue;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                }
+                // AllOrigins verpackt den Serverinhalt fehlerfrei in "contents"
+                let serverValue = parseInt(data.contents) || 0;
+                globalHighestScore = serverValue;
+                
+                let displayScore = Math.max(localScore, globalHighestScore);
+                counterEl.innerText = displayScore.toLocaleString();
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Beim Laden starten und alle 2 Sekunden aktualisieren
+        // Direkt starten und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Erhöht den Wert lokal und triggert ein atomares "+1" auf dem Server
+        // Klick-Aktion: Zählt hoch und speichert
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            currentGlobalScore++;
-            counterEl.innerText = currentGlobalScore.toLocaleString();
+            localScore++;
+            
+            let displayScore = Math.max(localScore, globalHighestScore);
+            counterEl.innerText = displayScore.toLocaleString();
 
-            // Löst die hit-Aktion aus. Der Server rechnet automatisch +1 dazu
-            fetch(hitUrl)
-            .then(res => res.json())
-            .then(data => {
-                let serverValue = parseInt(data.value) || currentGlobalScore;
-                if (serverValue > currentGlobalScore) {
-                    currentGlobalScore = serverValue;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
-                }
-            })
-            .catch(err => console.error("Sende-Fehler:", err));
+            // Hochladeschutz: Nur senden, wenn du den Rekord brichst
+            if (localScore > globalHighestScore) {
+                fetch(serverUrl, {
+                    method: "POST",
+                    body: localScore.toString()
+                })
+                .then(() => {
+                    globalHighestScore = localScore;
+                })
+                .catch(err => console.error("Sende-Fehler:", err));
+            }
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
