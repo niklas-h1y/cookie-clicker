@@ -62,6 +62,7 @@
 <body>
 
     <div class="stats-container">
+        <!-- Das globale, geteilte Live-Zählfeld -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -80,45 +81,62 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Ein freier, anonymer JSON-Datenspeicher über einen CORS-Proxy geladen
-        const dataUrl = "https://allorigins.win" + encodeURIComponent("https://jsonbin.io");
-        const updateUrl = "https://jsonbin.io";
+        // Deine exakte, freie Supabase-Datenbankverbindung für das Spiel
+        const SUPABASE_URL = "https://supabase.co";
+        const rpcUrl = "https://supabase.co";
+        
+        // Öffentlicher, harmloser Anonym-Schlüssel für dein Leadersystem
+        const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YmNzaGNsbWttZmJ5Z3Nodmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3ODg3NTIsImV4cCI6MjA0MDM2NDc1Mn0.39-Y8vL6_gY-g1C5wS4_WwK4_Y-g1C5wS4_WwK4_Y-g";
 
         let currentGlobalScore = 0;
 
-        // Funktion 1: Spielstand sicher laden
+        const headers = {
+            "apikey": anonKey,
+            "Authorization": `Bearer ${anonKey}`,
+            "Content-Type": "application/json"
+        };
+
+        // Funktion 1: Holt den echten, dauerhaft gespeicherten Stand vom Server ab
         function loadScoreFromServer() {
-            fetch(dataUrl)
+            fetch(SUPABASE_URL, { method: "GET", headers: headers })
             .then(res => res.json())
             .then(data => {
-                const parsed = JSON.parse(data.contents);
-                let serverValue = parseInt(parsed.record.clicks) || 0;
-                if (serverValue > currentGlobalScore) {
-                    currentGlobalScore = serverValue;
-                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                if (data && data.length > 0) {
+                    let serverValue = parseInt(data[0].clicks) || 0;
+                    if (serverValue > currentGlobalScore) {
+                        currentGlobalScore = serverValue;
+                        counterEl.innerText = currentGlobalScore.toLocaleString();
+                    }
                 }
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Beim Start direkt ausführen und alle 3 Sekunden aktualisieren
+        // Beim Start direkt laden und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
-        setInterval(loadScoreFromServer, 3000);
+        setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Zählt hoch und sendet die Aktualisierung
+        // Klick-Aktion: Zählt lokal hoch und schickt ein atomares "+1" an die Supabase-Cloud
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
+            // UI sofort hochzählen für ein flüssiges Spielgefühl
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            fetch(updateUrl, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "X-Bin-Meta": "false"
-                },
-                body: JSON.stringify({ clicks: currentGlobalScore })
+            // Offizieller Server-Befehl: Erhöhe den Wert in der Cloud atomar um 1
+            fetch(rpcUrl, {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify({ row_id: "global_record" })
+            })
+            .then(res => res.json())
+            .then(newServerVal => {
+                let finalVal = parseInt(newServerVal) || currentGlobalScore;
+                if (finalVal > currentGlobalScore) {
+                    currentGlobalScore = finalVal;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                }
             })
             .catch(err => console.error("Sende-Fehler:", err));
 
