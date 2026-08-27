@@ -80,20 +80,19 @@
         const cookieBtn = document.getElementById('cookie-btn');
         
         // Deine kvdb.io-URL
-        const serverUrl = "https://kvdb.io/EAM71nkDKB4vF1egpkdB9P/";
+        const serverUrl = "https://kvdb.io";
 
         let localHighestScore = 0;
 
-        // Funktion: Liest die Daten als einfachen Text vom Server
+        // Funktion: Lädt den aktuellen Wert als Text vom Server
         function loadScoreFromServer() {
             fetch(serverUrl)
             .then(res => {
                 if (res.status === 404) return "0";
-                return res.text(); // Text-Auslesung verhindert Absturz
+                return res.text();
             })
             .then(val => {
                 let serverValue = parseInt(val) || 0;
-                // Nur updaten, wenn der Serverwert höher als unser lokaler Wert ist
                 if (serverValue > localHighestScore) {
                     localHighestScore = serverValue;
                     counterEl.innerText = localHighestScore.toLocaleString();
@@ -102,7 +101,7 @@
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Direkt beim Start laden und alle 2 Sekunden aktualisieren
+        // Beim Start ausführen und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
@@ -113,7 +112,7 @@
             localHighestScore++;
             counterEl.innerText = localHighestScore.toLocaleString();
 
-            // Wert direkt als Text an den Server senden
+            // Wert an den Server senden
             fetch(serverUrl, {
                 method: "POST",
                 body: localHighestScore.toString()
