@@ -4,9 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
-    <!-- Firebase Bibliotheken direkt einbinden -->
+    
+    <!-- ALLE 4 BENÖTIGTEN FIREBASE-BIBLIOTHEKEN (Verhindert das Stehenbleiben bei 0) -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+    <script src="https://gstatic.com"></script>
+
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -64,7 +68,7 @@
 <body>
 
     <div class="stats-container">
-        <!-- Der eine, gemeinsame globale Keks-Zähler -->
+        <!-- Der globale Gemeinschaftszähler -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -83,22 +87,22 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Sicheres, freies Firebase-Backend für dein globales Spiel
+        // Offizielle, freie Firebase-Konfiguration für das Spiel
         const firebaseConfig = {
             databaseURL: "https://firebasedatabase.app"
         };
 
-        // Firebase initialisieren
-        firebase.initializeApp(firebaseConfig);
+        // Firebase-Startvorgang absichern
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
         const database = firebase.database();
         const scoreRef = database.ref('highest_score');
 
-        // Wir haben nur noch EINE einzige Zahl für das gesamte Spiel
         let currentGlobalScore = 0;
 
-        // ECHZEIT-SYNCHRONISATION:
-        // Firebase passt jede Sekunde auf. Sobald IRGENDWER auf der Welt klickt,
-        // ändert sich die Zahl auf ALLEN Bildschirmen gleichzeitig in Echtzeit.
+        // ECHZEIT-EMPFANG: Holt die Zahl live von Google und aktualisiert sie bei jedem Spieler
         scoreRef.on('value', (snapshot) => {
             const serverValue = snapshot.val();
             if (serverValue !== null) {
@@ -107,17 +111,15 @@
             }
         });
 
-        // Klick-Aktion
+        // KLICK-AKTION: Zählt hoch und synchronisiert die Transaktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // 1. Erhöhe den aktuellen globalen Wert direkt auf dem Bildschirm um 1
+            // UI sofort hochzählen, damit das Klickgefühl flüssig bleibt
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // 2. Nutze die "transaction" Funktion von Firebase.
-            // Das sorgt dafür, dass die Zahl auf dem Google-Server absolut fehlerfrei um 1 hochgezählt wird,
-            // selbst wenn 100 Spieler in der exakt selben Millisekunde klicken!
+            // Google Transaktion ausführen: Zählt auf dem Server fehlerfrei +1 dazu
             scoreRef.transaction((currentValue) => {
                 return (currentValue || 0) + 1;
             });
