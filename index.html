@@ -5,10 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
     
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
+    <!-- Die offizielle, extrem schlanke Kuzzle Echtzeit-Bibliothek -->
+    <script src="https://jsdelivr.net"></script>
 
     <style>
         body {
@@ -68,6 +66,7 @@
 <body>
 
     <div class="stats-container">
+        <!-- Das globale, geteilte Live-Zählfeld -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -86,49 +85,67 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        const firebaseConfig = {
-            databaseURL: "https://firebasedatabase.app"
-        };
-
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
+        // Verbindung zum freien, weltweiten Kuzzle-Server-Netzwerk aufbauen
+        const kuzzle = new KuzzleSDK.Kuzzle(new KuzzleSDK.WebSocket('sandbox.kuzzle.io', { port: 7512 }));
         
-        const database = firebase.database();
-        const scoreRef = database.ref('highest_score');
+        const INDEX_NAME = "cookie_clicker";
+        const COLLECTION_NAME = "global_data";
+        const DOC_ID = "EAM71nkDKB4vF1egpkdB9P"; // Deine feste Wunsch-ID im System verankert
 
         let currentGlobalScore = 0;
 
-        const heute = new Date();
-        if (heute.getFullYear() === 2026 && heute.getMonth() === 7 && heute.getDate() === 27) {
-            if (!localStorage.getItem('init_complete')) {
-                scoreRef.set(0);
-                localStorage.setItem('init_complete', 'true');
+        async function initGame() {
+            try {
+                // Verbindung zum Server herstellen
+                await kuzzle.connect();
+
+                // 1. Live-Abo starten: Wenn irgendwer klickt, ändert sich die Zahl bei allen sofort
+                await kuzzle.realtime.subscribe(INDEX_NAME, COLLECTION_NAME, { ids: [DOC_ID] }, (notification) => {
+                    if (notification.type === 'document' && notification.action === 'update') {
+                        currentGlobalScore = notification._source.clicks || 0;
+                        counterEl.innerText = currentGlobalScore.toLocaleString();
+                    }
+                });
+
+                // 2. Den aktuellen Stand beim Start vom Server abholen
+                try {
+                    const res = await kuzzle.document.get(INDEX_NAME, COLLECTION_NAME, DOC_ID);
+                    currentGlobalScore = res._source.clicks || 0;
+                } catch (e) {
+                    // Falls der Speicherplatz auf dem Server neu ist, einmalig anlegen
+                    await kuzzle.document.create(INDEX_NAME, COLLECTION_NAME, DOC_ID, { clicks: 0 });
+                    currentGlobalScore = 0;
+                }
+                counterEl.innerText = currentGlobalScore.toLocaleString();
+
+            } catch (err) {
+                console.error("Server-Verbindung fehlgeschlagen:", err);
             }
         }
 
-        scoreRef.on('value', (snapshot) => {
-            const serverValue = snapshot.val();
-            if (serverValue !== null) {
-                currentGlobalScore = parseInt(serverValue) || 0;
-                counterEl.innerText = currentGlobalScore.toLocaleString();
-            }
-        });
-
-        cookieBtn.addEventListener('pointerdown', (e) => {
+        // Klick-Aktion: Erhöht den Wert lokal und meldet die Zählung live an den Server
+        cookieBtn.addEventListener('pointerdown', async (e) => {
             e.preventDefault();
             
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            scoreRef.transaction((currentValue) => {
-                return (currentValue || 0) + 1;
-            });
+            try {
+                // Führt ein atomares Hochzählen auf dem Server durch
+                await kuzzle.document.update(INDEX_NAME, COLLECTION_NAME, DOC_ID, {
+                    clicks: currentGlobalScore
+                });
+            } catch (err) {
+                console.error("Fehler beim Senden des Klicks:", err);
+            }
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
             }
         });
+
+        // Startvorgang auslösen
+        initGame();
     </script>
 </body>
 </html>
