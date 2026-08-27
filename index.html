@@ -62,7 +62,7 @@
 <body>
 
     <div class="stats-container">
-        <!-- Das globale, absolut synchrone Echtzeit-Zählfeld -->
+        <!-- Das globale Live-Zählfeld -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -93,12 +93,13 @@
             "Content-Type": "application/json"
         };
 
-        // Funktion 1: Holt den aktuellen Stand beim ersten Starten der Seite ab
+        // Funktion: Spielstand sicher laden & Live-Abfrage (jede Sekunde)
         function loadScoreFromServer() {
             fetch(SUPABASE_URL, { method: "GET", headers: headers })
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
+                    // FIX: Nutzt data[0].clicks statt data.clicks, da Supabase Listen liefert
                     let serverValue = parseInt(data[0].clicks) || 0;
                     if (serverValue > currentGlobalScore) {
                         currentGlobalScore = serverValue;
@@ -109,41 +110,17 @@
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Funktion 2: ECHZEIT-STREAM STARTEN
-        // Baut eine dauerhafte Live-Leitung auf. Sobald sich in der Datenbank der Wert ändert,
-        // schickt der Server die Zahl in Millisekunden an alle geöffneten Seiten heraus.
-        function startRealtimeStream() {
-            const streamUrl = `https://supabase.co&apikey=${anonKey}`;
-            
-            // Abfragerhythmus im Hintergrund (alle 1,5 Sekunden), um alle Spieler absolut synchron zu halten
-            setInterval(() => {
-                fetch(streamUrl, { method: "GET", headers: { "Authorization": `Bearer ${anonKey}` } })
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        let liveValue = parseInt(data[0].clicks) || 0;
-                        if (liveValue > currentGlobalScore) {
-                            currentGlobalScore = liveValue;
-                            counterEl.innerText = currentGlobalScore.toLocaleString();
-                        }
-                    }
-                }).catch(() => {});
-            }, 1500);
-        }
-
-        // Beim Starten ausführen
+        // Direkt beim Starten laden und jede Sekunde im Hintergrund synchronisieren
         loadScoreFromServer();
-        startRealtimeStream();
+        setInterval(loadScoreFromServer, 1000);
 
-        // Klick-Aktion: Zählt hoch und schickt ein unblockbares Signal an die Cloud
+        // Klick-Aktion: Zählt lokal hoch und sendet ein atomares "+1"
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // UI sofort hochzählen für ein flüssiges, verzögerungsfreies Spielgefühl
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Der Server rechnet den Klick im Hintergrund atomar auf die Gesamtzahl drauf (+1)
             fetch(rpcUrl, {
                 method: "POST",
                 headers: headers,
