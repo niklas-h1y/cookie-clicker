@@ -62,6 +62,7 @@
 <body>
 
     <div class="stats-container">
+        <!-- Das globale Live-Zählfeld -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -93,16 +94,32 @@
             "Prefer": "return=representation"
         };
 
-        // Funktion: Weltrekord laden
-        function loadScoreFromServer() {
+        // Funktion: Weltrekord laden und beim ersten Laden direkt um 1 erhöhen
+        function loadScoreFromServer(isFirstLoad = false) {
             fetch(`${BASE_URL}?id=eq.global_record`, { method: "GET", headers: headers })
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    // KORREKTUR: Daten liegen in einer Liste, wir müssen das erste Element [0] auslesen!
+                    // FIX: Auslesen des ersten Eintrags aus dem Array via!
                     let serverValue = parseInt(data[0].clicks) || 0;
                     globalHighestScore = serverValue;
                     
+                    // WUNSCH: Wenn die Seite frisch lädt, erhöhe den Score sofort um 1
+                    if (isFirstLoad) {
+                        globalHighestScore++;
+                        if (localScore < globalHighestScore) {
+                            localScore = globalHighestScore;
+                            localStorage.setItem('my_cookie_clicks', localScore);
+                        }
+                        
+                        // Den erhöhten Wert direkt an den Server melden
+                        fetch(`${BASE_URL}?id=eq.global_record`, {
+                            method: "PATCH",
+                            headers: headers,
+                            body: JSON.stringify({ clicks: globalHighestScore })
+                        }).catch(() => {});
+                    }
+
                     let displayScore = Math.max(localScore, globalHighestScore);
                     counterEl.innerText = displayScore.toLocaleString();
                 }
@@ -110,8 +127,13 @@
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        loadScoreFromServer();
-        setInterval(loadScoreFromServer, 2000);
+        // Beim ersten Laden der Website ausführen (mit True-Signal für den +1 Page-Load-Bonus)
+        loadScoreFromServer(true);
+        
+        // Alle 2 Sekunden im Hintergrund synchronisieren (ohne den Page-Load-Bonus)
+        setInterval(() => {
+            loadScoreFromServer(false);
+        }, 2000);
 
         // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
@@ -134,6 +156,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
+                        // FIX: Auch hier den Array-Zugriff auf [0] korrigiert!
                         globalHighestScore = parseInt(data[0].clicks) || localScore;
                     }
                 })
