@@ -106,50 +106,34 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Komplett freie Live-Zähler-API ohne jegliche Schreibblockaden
         const counterKey = "niklash1y_cookie_game_2026";
         const getUrl = `https://scrimba.com{counterKey}`;
         const hitUrl = `https://scrimba.com{counterKey}/increment`;
 
-        // 1. Lokalen Backup-Speicher auslesen
-        let localBackup = parseInt(localStorage.getItem('cookie_backup')) || 0;
-        counterEl.innerText = localBackup.toLocaleString();
-
-        // Funktion: Spielstand aus der weltweiten Cloud abrufen
+        // Funktion: Spielstand alle 3 Sekunden sauber vom Server holen
         function getGlobalScore() {
             fetch(getUrl)
             .then(res => res.json())
             .then(data => {
                 if (data.count !== undefined) {
-                    // Nur aktualisieren, wenn der Serverwert höher als das lokale Backup ist
-                    let serverVal = parseInt(data.count) || 0;
-                    let highest = Math.max(serverVal, localBackup);
-                    counterEl.innerText = highest.toLocaleString();
-                    localStorage.setItem('cookie_backup', highest);
+                    counterEl.innerText = parseInt(data.count).toLocaleString();
                 }
             })
-            .catch(() => {
-                // Bei Netzwerkfehlern bleibt einfach der lokale Wert stehen
-                counterEl.innerText = localBackup.toLocaleString();
-            });
+            .catch(() => {});
         }
 
-        // Automatische Echtzeit-Synchronisation alle 1,5 Sekunden
+        // Aktualisierung auf exakt 3000 Millisekunden (3 Sekunden) gesetzt
         getGlobalScore();
-        setInterval(getGlobalScore, 1500);
+        setInterval(getGlobalScore, 3000);
 
-        // Klick-Aktion: Zählt lokal SOFORT hoch und meldet es parallel der Cloud
+        // Klick-Aktion: Erhöht den Wert auf dem Bildschirm sofort und funkt den Server an
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
             let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            localBackup = current + 1;
-            
-            // Bildschirm-Zähler knallt sofort ohne jede Verzögerung nach oben!
-            counterEl.innerText = localBackup.toLocaleString();
-            localStorage.setItem('cookie_backup', localBackup);
+            counterEl.innerText = (current + 1).toLocaleString();
 
-            // Den Klick im Hintergrund an die offene Cloud schicken
+            // Klick an die offene Cloud senden
             fetch(hitUrl, { method: "POST" });
 
             createSparkle(e.clientX, e.clientY);
