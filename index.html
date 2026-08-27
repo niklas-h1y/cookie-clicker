@@ -105,41 +105,47 @@
     <script>
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
-        const url = "https://keyvalue.xyz";
+        
+        // Stabiler, geteilter öffentlicher Zähler-Endpunkt
+        const binUrl = "https://jsonbin.io";
 
-        // Funktion: Spielstand live aus dem Internet abrufen
+        // Spielstand live laden
         function getGlobalScore() {
-            fetch(url)
-                .then(res => res.text())
-                .then(val => {
-                    if (val && !isNaN(val)) {
-                        counterEl.innerText = parseInt(val).toLocaleString();
-                    } else {
-                        // Falls der Zähler auf dem Server leer ist, setzen wir ihn auf 10
-                        fetch(url + "/10", { method: "POST" });
-                        counterEl.innerText = "10";
-                    }
-                })
-                .catch(() => {
-                    counterEl.innerText = "Offline";
-                });
+            fetch(binUrl, {
+                headers: { "X-Bin-Meta": "false" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.clicks !== undefined) {
+                    counterEl.innerText = parseInt(data.clicks).toLocaleString();
+                }
+            })
+            .catch(() => {
+                // Fallback, falls die API kurz blockiert
+                if(counterEl.innerText === "Loading...") {
+                    counterEl.innerText = "0";
+                }
+            });
         }
 
-        // Alle 1,5 Sekunden den Spielstand mit dem Internet synchronisieren
+        // Automatische Synchronisation alle 2 Sekunden
         getGlobalScore();
-        setInterval(getGlobalScore, 1500);
+        setInterval(getGlobalScore, 2000);
 
-        // Klick-Aktion: Sendet den Klick live ins weltweite Netz
+        // Klick-Aktion: Rechnet +1 und sendet es live an den stabilen Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Aktuellen Textwert nehmen und +1 rechnen
             let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
             let nextValue = current + 1;
             counterEl.innerText = nextValue.toLocaleString();
 
-            // Wert direkt an den Server senden
-            fetch(`${url}/${nextValue}`, { method: "POST" });
+            // Wert an den Server übermitteln
+            fetch(binUrl, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ clicks: nextValue })
+            });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
