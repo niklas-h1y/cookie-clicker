@@ -79,20 +79,19 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Neuer, stabiler Server-Pfad mit deiner persönlichen ID
+        // Stabiler, mobiltauglicher Server mit deinem Bucket
         const BUCKET_ID = "EAM71nkDKB4vF1egpkdB9P";
         const getUrl = `https://jasoncameron.dev{BUCKET_ID}/cookies`;
         const hitUrl = `https://jasoncameron.dev{BUCKET_ID}/cookies`;
 
         let currentGlobalScore = 0;
 
-        // Funktion 1: Holt den aktuellen weltweiten Stand vom Server
+        // Funktion 1: Den aktuellen globalen Zählerstand laden
         function loadScoreFromServer() {
             fetch(getUrl)
             .then(res => res.json())
             .then(data => {
                 let serverValue = parseInt(data.value) || 0;
-                // Nur aktualisieren, wenn der Serverwert höher als unsere lokale Anzeige ist
                 if (serverValue > currentGlobalScore) {
                     currentGlobalScore = serverValue;
                     counterEl.innerText = currentGlobalScore.toLocaleString();
@@ -101,18 +100,18 @@
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Beim Start einmal direkt laden und alle 2 Sekunden aktualisieren
+        // Beim Laden starten und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Erhöht den Zähler lokal und meldet einen "+1 Hit" an den Server
+        // Klick-Aktion: Erhöht den Wert lokal und triggert ein atomares "+1" auf dem Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Löst einen sicheren Hit-Zähler aus (Server rechnet automatisch +1)
+            // Löst die hit-Aktion aus. Der Server rechnet automatisch +1 dazu
             fetch(hitUrl)
             .then(res => res.json())
             .then(data => {
