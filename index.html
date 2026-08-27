@@ -29,12 +29,12 @@
         }
         .online-count {
             font-size: 1.1rem;
-            color: #2ecc71;
+            color: #3498db;
             font-weight: bold;
-            background: rgba(46, 204, 113, 0.1);
+            background: rgba(52, 152, 219, 0.1);
             padding: 8px 20px;
             border-radius: 20px;
-            border: 1px solid rgba(46, 204, 113, 0.3);
+            border: 1px solid rgba(52, 152, 219, 0.3);
         }
         .cookie-container {
             position: relative;
@@ -86,9 +86,9 @@
 <body>
 
     <div class="stats-container">
-        <span class="online-count"><span id="online-users">1</span> Players Online</span>
+        <span class="online-count">🔑 No Key Mode</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
-        <h1 id="global-counter">Loading...</h1>
+        <h1 id="global-counter">0</h1>
     </div>
 
     <div class="cookie-container" id="cookie-btn">
@@ -102,38 +102,42 @@
         </div>
     </div>
 
-    <script src="https://gstatic.com"></script>
-    <script src="https://gstatic.com"></script>
-
     <script>
-        // Echter, verifizierter Live-Schlüssel für die offene Demo-Datenbank
-        const firebaseConfig = {
-            apiKey: "AIzaSyAs8z6V_m6lX0zZ8X7k2m9Pq0wNs2L4vX0",
-            authDomain: "://firebaseapp.com",
-            databaseURL: "https://firebaseio.com",
-            projectId: "public-cookie-clicker"
-        };
-
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
-        const clickRef = database.ref('global_clicks');
-        const presenceRef = database.ref('presence');
-
+        // Ein einzigartiger Name für deinen Raum im öffentlichen Speicher
+        const namespace = "niklash1y_cookie_clicker_2026";
+        const key = "clicks";
         const counterEl = document.getElementById('global-counter');
-        const onlineEl = document.getElementById('online-users');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        clickRef.on('value', (snapshot) => {
-            const clicks = snapshot.val() || 0;
-            counterEl.innerText = clicks.toLocaleString();
-        });
+        // Funktion zum Laden des aktuellen Spielstands vom Server
+        function updateScore() {
+            fetch(`https://countapi.xyz{namespace}/${key}`)
+                .then(res => res.json())
+                .then(data => {
+                    if(data.value !== undefined) {
+                        counterEl.innerText = data.value.toLocaleString();
+                    }
+                })
+                .catch(() => {
+                    // Falls der Raum neu ist, erstellen wir ihn mit 0
+                    fetch(`https://countapi.xyz{namespace}&key=${key}&value=0`);
+                });
+        }
 
-        // Event-Handling angepasst gegen Tablet-Eingabeverzögerungen
+        // Lade den Score sofort beim Start und danach alle 2 Sekunden neu
+        updateScore();
+        setInterval(updateScore, 2000);
+
+        // Klick-Aktion: Zählt auf dem öffentlichen Server +1 dazu
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
-            clickRef.transaction((currentClicks) => {
-                return (currentClicks || 0) + 1;
-            });
+            
+            fetch(`https://countapi.xyz{namespace}/${key}`)
+                .then(res => res.json())
+                .then(data => {
+                    counterEl.innerText = data.value.toLocaleString();
+                });
+
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
@@ -149,21 +153,6 @@
             document.body.appendChild(sparkle);
             setTimeout(() => sparkle.remove(), 600);
         }
-
-        const amOnline = database.ref('.info/connected');
-        const userPresenceRef = presenceRef.push();
-
-        amOnline.on('value', (snapshot) => {
-            if (snapshot.val() === true) {
-                userPresenceRef.onDisconnect().remove();
-                userPresenceRef.set(true);
-            }
-        });
-
-        presenceRef.on('value', (snapshot) => {
-            const count = snapshot.numChildren() || 0;
-            onlineEl.innerText = count;
-        });
     </script>
 </body>
 </html>
