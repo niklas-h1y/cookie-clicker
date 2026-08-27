@@ -79,29 +79,31 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Deine feste Wunsch-URL
-        const targetUrl = "https://kvdb.io";
+        // Deine feste ID wird im Datenpfad von CountAPI verankert
+        const NAMESPACE = "EAM71nkDKB4vF1egpkdB9P";
+        const KEY = "clicks";
         
-        // Wir leiten JEDE Anfrage durch einen CORS-Proxy um, damit dein Tablet es nicht blockiert
-        const proxyUrl = "https://corsproxy.io?" + encodeURIComponent(targetUrl);
+        const getUrl = `https://countapi.xyz{NAMESPACE}/${KEY}`;
+        const hitUrl = `https://countapi.xyz{NAMESPACE}/${KEY}`;
 
-        let localScore = 0;
-        let globalHighestScore = 0;
+        let currentGlobalScore = 0;
 
-        // Funktion 1: Den aktuellen Zählerstand sicher über den Proxy laden
+        // Funktion 1: Holt den aktuellen weltweiten Stand vom Server
         function loadScoreFromServer() {
-            fetch(proxyUrl)
+            fetch(getUrl)
             .then(res => {
-                if (res.status === 404) return "0";
-                return res.text();
+                if (res.status === 404) {
+                    // Falls der Key neu ist, einmalig erstellen
+                    return fetch(`https://countapi.xyz{NAMESPACE}&key=${KEY}&value=0`).then(r => r.json());
+                }
+                return res.json();
             })
-            .then(val => {
-                let serverValue = parseInt(val) || 0;
-                globalHighestScore = serverValue;
-                
-                // Zeige den jeweils höchsten Wert an
-                let displayScore = Math.max(localScore, globalHighestScore);
-                counterEl.innerText = displayScore.toLocaleString();
+            .then(data => {
+                let serverValue = parseInt(data.value) || 0;
+                if (serverValue > currentGlobalScore) {
+                    currentGlobalScore = serverValue;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                }
             })
             .catch(err => console.error("Ladefehler:", err));
         }
@@ -110,26 +112,24 @@
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion
+        // Klick-Aktion: Zählt hoch und sichert es als atomares "+1"
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            localScore++;
-            
-            let displayScore = Math.max(localScore, globalHighestScore);
-            counterEl.innerText = displayScore.toLocaleString();
+            currentGlobalScore++;
+            counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // SPERRE: Nur an den Server senden, wenn du den weltweiten Rekord brichst!
-            if (localScore > globalHighestScore) {
-                fetch(proxyUrl, {
-                    method: "POST",
-                    body: localScore.toString()
-                })
-                .then(() => {
-                    globalHighestScore = localScore;
-                })
-                .catch(err => console.error("Sende-Fehler:", err));
-            }
+            // Erhöht den Wert auf dem Server fehlerfrei um genau 1
+            fetch(hitUrl)
+            .then(res => res.json())
+            .then(data => {
+                let serverValue = parseInt(data.value) || currentGlobalScore;
+                if (serverValue > currentGlobalScore) {
+                    currentGlobalScore = serverValue;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                }
+            })
+            .catch(err => console.error("Sende-Fehler:", err));
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
