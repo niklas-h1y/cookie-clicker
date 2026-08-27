@@ -62,7 +62,6 @@
 <body>
 
     <div class="stats-container">
-        <!-- Das globale Live-Zählfeld -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -85,7 +84,9 @@
         const rpcUrl = "https://supabase.co";
         const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YmNzaGNsbWttZmJ5Z3Nodmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3ODg3NTIsImV4cCI6MjA0MDM2NDc1Mn0.39-Y8vL6_gY-g1C5wS4_WwK4_Y-g1C5wS4_WwK4_Y-g";
 
-        let currentGlobalScore = 0;
+        // 1. Zuerst das Local-Backup aus deinem Tablet laden
+        let currentGlobalScore = parseInt(localStorage.getItem('my_cookie_clicks')) || 0;
+        counterEl.innerText = currentGlobalScore.toLocaleString();
 
         const headers = {
             "apikey": anonKey,
@@ -93,34 +94,40 @@
             "Content-Type": "application/json"
         };
 
-        // Funktion: Spielstand sicher laden & Live-Abfrage (jede Sekunde)
+        // Funktion: Spielstand vom Server laden
         function loadScoreFromServer() {
             fetch(SUPABASE_URL, { method: "GET", headers: headers })
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    // FIX: Nutzt data[0].clicks statt data.clicks, da Supabase Listen liefert
                     let serverValue = parseInt(data[0].clicks) || 0;
                     if (serverValue > currentGlobalScore) {
                         currentGlobalScore = serverValue;
                         counterEl.innerText = currentGlobalScore.toLocaleString();
+                        // Auch den höheren Serverwert direkt im Tablet absichern
+                        localStorage.setItem('my_cookie_clicks', currentGlobalScore);
                     }
                 }
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Direkt beim Starten laden und jede Sekunde im Hintergrund synchronisieren
+        // Alle 2 Sekunden live synchronisieren
         loadScoreFromServer();
-        setInterval(loadScoreFromServer, 1000);
+        setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion: Zählt lokal hoch und sendet ein atomares "+1"
+        // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
+            // Sofort hochzählen
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
+            // 2. Klick BOMBENFEST im Tablet sichern (fällt beim Refresh nie wieder auf 0!)
+            localStorage.setItem('my_cookie_clicks', currentGlobalScore);
+
+            // 3. Parallel an den Server schicken
             fetch(rpcUrl, {
                 method: "POST",
                 headers: headers,
@@ -132,6 +139,7 @@
                 if (finalVal > currentGlobalScore) {
                     currentGlobalScore = finalVal;
                     counterEl.innerText = currentGlobalScore.toLocaleString();
+                    localStorage.setItem('my_cookie_clicks', currentGlobalScore); //
                 }
             })
             .catch(err => console.error("Sende-Fehler:", err));
