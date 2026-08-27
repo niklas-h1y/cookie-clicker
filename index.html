@@ -24,20 +24,10 @@
         }
         h1 {
             font-size: 3.5rem;
-            margin: 0 0 10px 0;
+            margin: 0;
             text-shadow: 0 4px 6px rgba(0,0,0,0.3);
         }
-        .online-count {
-            font-size: 1.1rem;
-            color: #2ecc71;
-            font-weight: bold;
-            background: rgba(46, 204, 113, 0.1);
-            padding: 8px 20px;
-            border-radius: 20px;
-            border: 1px solid rgba(46, 204, 113, 0.3);
-        }
         .cookie-container {
-            position: relative;
             cursor: pointer;
             transition: transform 0.05s ease;
             user-select: none;
@@ -66,28 +56,11 @@
         .chip:nth-child(4) { width: 25px; height: 25px; top: 140px; left: 115px; }
         .chip:nth-child(5) { width: 30px; height: 22px; top: 100px; left: 160px; }
         .chip:nth-child(6) { width: 22px; height: 22px; top: 160px; left: 70px; }
-
-        .sparkle {
-            position: absolute;
-            color: #f1c40f;
-            font-weight: bold;
-            font-size: 1.8rem;
-            pointer-events: none;
-            animation: floatUp 0.6s ease-out forwards;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-        @keyframes floatUp {
-            0% { opacity: 1; transform: translateY(0) scale(1); }
-            100% { opacity: 0; transform: translateY(-80px) scale(1.3); }
-        }
     </style>
 </head>
 <body>
 
     <div class="stats-container">
-        <span class="online-count">🚀 Powered by AWS DynamoDB</span>
-        <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Highest Score Ever</p>
         <h1 id="global-counter">Loading...</h1>
     </div>
 
@@ -95,7 +68,7 @@
         <div class="cookie">
             <div class="chip"></div>
             <div class="chip"></div>
-            <div class="cookie-container"></div>
+            <div class="chip"></div>
             <div class="chip"></div>
             <div class="chip"></div>
             <div class="chip"></div>
@@ -106,23 +79,23 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Trage hier deine echte AWS API-Gateway URL ein
-        const awsUrl = "https://on.aws"; 
+        // Deine eigene kvdb.io-URL
+        const serverUrl = "https://kvdb.io";
 
         let localHighestScore = 0;
 
-        // Funktion: Die Zahl direkt aus der AWS-Datenbank abrufen
-        function loadAWSScore() {
-            fetch(awsUrl)
-            .then(res => res.json())
-            .then(data => {
-                if (data.clicks !== undefined) {
-                    let serverValue = parseInt(data.clicks) || 0;
-                    // Nur aktualisieren, wenn der Serverwert höher oder gleich ist
-                    if (serverValue >= localHighestScore) {
-                        localHighestScore = serverValue;
-                        counterEl.innerText = localHighestScore.toLocaleString();
-                    }
+        // Funktion: Die Zahl vom Server laden
+        function loadScoreFromServer() {
+            fetch(serverUrl)
+            .then(res => {
+                if (res.status === 404) return "0";
+                return res.text();
+            })
+            .then(val => {
+                let serverValue = parseInt(val) || 0;
+                if (serverValue >= localHighestScore) {
+                    localHighestScore = serverValue;
+                    counterEl.innerText = localHighestScore.toLocaleString();
                 }
             })
             .catch(() => {
@@ -130,50 +103,27 @@
             });
         }
 
-        // Takt: Alle 3 Sekunden live mit AWS synchronisieren
-        loadAWSScore();
-        setInterval(loadAWSScore, 3000);
+        // Alle 3 Sekunden mit dem Server synchronisieren
+        loadScoreFromServer();
+        setInterval(loadScoreFromServer, 3000);
 
-        // Klick-Aktion: Zählt sofort hoch und sichert es in der AWS-Cloud
+        // Klick-Aktion: Zählt hoch und speichert es online
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
             localHighestScore++;
             counterEl.innerText = localHighestScore.toLocaleString();
 
-            // Sendet den neuen Highscore im JSON-Format an dein AWS-Backend
-            fetch(awsUrl, {
+            fetch(serverUrl, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ clicks: localHighestScore }) // Sendet den Score im Body mit
+                body: localHighestScore.toString()
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.clicks !== undefined) {
-                    let freshServerValue = parseInt(data.clicks) || 0;
-                    if (freshServerValue > localHighestScore) {
-                        localHighestScore = freshServerValue;
-                        counterEl.innerText = localHighestScore.toLocaleString();
-                    }
-                }
-            })
-            .catch(err => console.error("Fehler beim Senden an AWS:", err));
+            .catch(err => console.error("Fehler:", err));
 
-            createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
             }
         });
-
-        function createSparkle(x, y) {
-            const sparkle = document.createElement('div');
-            sparkle.className = 'sparkle';
-            sparkle.innerText = '+1';
-            sparkle.style.left = `${x - 15}px`;
-            sparkle.style.top = `${y - 20}px`;
-            document.body.appendChild(sparkle);
-            setTimeout(() => sparkle.remove(), 600);
-        }
     </script>
 </body>
 </html>
