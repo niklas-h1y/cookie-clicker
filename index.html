@@ -86,7 +86,7 @@
 <body>
 
     <div class="stats-container">
-        <span class="online-count">🌍 Permanent Global Mode</span>
+        <span class="online-count">🌍 Persistent Global Mode</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
         <h1 id="global-counter">Loading...</h1>
     </div>
@@ -106,52 +106,48 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Vollkommen freie, offene Zähler-Schnittstelle ohne Schreibsperren
-        const getUrl = "https://moecounter.org";
-        const hitUrl = "https://moecounter.org";
+        // Einzigartiger persistenter Namespace & Key auf der Abacus-API
+        const namespace = "niklas_h1y_games";
+        const key = "global_cookie_clicks";
+        
+        const getUrl = `https://jasoncameron.dev{namespace}/${key}`;
+        const hitUrl = `https://jasoncameron.dev{namespace}/${key}`;
 
-        let currentScore = 0;
-
-        // Funktion: Den echten weltweiten Spielstand laden
+        // Funktion: Den echten, permanenten Spielstand vom Server holen
         function getGlobalScore() {
             fetch(getUrl)
             .then(res => res.json())
             .then(data => {
-                if (data.count !== undefined) {
-                    let serverVal = parseInt(data.count) || 0;
-                    // Der Zähler darf niemals kleiner werden als unser aktueller Stand
-                    if (serverVal >= currentScore) {
-                        currentScore = serverVal;
-                        counterEl.innerText = currentScore.toLocaleString();
-                    }
+                // Abacus liefert den Wert im Feld "value" zurück
+                if (data.value !== undefined) {
+                    counterEl.innerText = parseInt(data.value).toLocaleString();
                 }
             })
             .catch(() => {
-                if (counterEl.innerText === "Loading...") counterEl.innerText = "0";
+                if (counterEl.innerText === "Loading...") {
+                    counterEl.innerText = "0";
+                }
             });
         }
 
-        // Alle 3 Sekunden synchronisieren
+        // Alle 3 Sekunden wird der Spielstand knallhart mit der Cloud synchronisiert
         getGlobalScore();
         setInterval(getGlobalScore, 3000);
 
-        // Klick-Aktion: Zählt sofort optisch hoch und sendet den Klick an den Server
+        // Klick-Aktion: Sendet ein reines "+1 Signal" an den Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            currentScore++;
-            counterEl.innerText = currentScore.toLocaleString();
+            // Lokales Hochzählen auf dem Bildschirm für verzögerungsfreies Feedback
+            let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
+            counterEl.innerText = (current + 1).toLocaleString();
 
-            // Schicke den Klick ab. Der Server erhöht den Wert atomar im Hintergrund!
+            // Der "hit"-Befehl erhöht den Wert atomar direkt in der Server-Datenbank
             fetch(hitUrl)
             .then(res => res.json())
             .then(data => {
-                if (data.count !== undefined) {
-                    let freshServerVal = parseInt(data.count) || 0;
-                    if (freshServerVal > currentScore) {
-                        currentScore = freshServerVal;
-                        counterEl.innerText = currentScore.toLocaleString();
-                    }
+                if (data.value !== undefined) {
+                    counterEl.innerText = parseInt(data.value).toLocaleString();
                 }
             });
 
