@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
     
-    <!-- ALLE 4 BENÖTIGTEN FIREBASE-BIBLIOTHEKEN (Verhindert das Stehenbleiben bei 0) -->
+    <!-- Die 4 benötigten Firebase-Bibliotheken für fehlerfreies Laden -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
@@ -33,6 +33,7 @@
             font-size: 3.5rem;
             margin: 0;
             text-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            user-select: none;
         }
         .cookie-container {
             cursor: pointer;
@@ -68,7 +69,7 @@
 <body>
 
     <div class="stats-container">
-        <!-- Der globale Gemeinschaftszähler -->
+        <!-- Der globale Live-Zähler -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -87,12 +88,11 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Offizielle, freie Firebase-Konfiguration für das Spiel
+        // Die Verbindung zu deiner Google Firebase Live-Datenbank
         const firebaseConfig = {
             databaseURL: "https://firebasedatabase.app"
         };
 
-        // Firebase-Startvorgang absichern
         if (!firebase.apps.length) {
             firebase.initializeApp(firebaseConfig);
         }
@@ -102,7 +102,17 @@
 
         let currentGlobalScore = 0;
 
-        // ECHZEIT-EMPFANG: Holt die Zahl live von Google und aktualisiert sie bei jedem Spieler
+        // UNSICHTBARER EINMAL-RESET:
+        // Nutzt das heutige Datum (27. August 2026), um die Datenbank beim allerersten Laden unbemerkt auf 0 zu leeren.
+        const heute = new Date();
+        if (heute.getFullYear() === 2026 && heute.getMonth() === 7 && heute.getDate() === 27) {
+            if (!localStorage.getItem('init_complete')) {
+                scoreRef.set(0);
+                localStorage.setItem('init_complete', 'true');
+            }
+        }
+
+        // LIVE-EMPFANG: Google schickt jede Änderung in Millisekunden an alle Bildschirme weltweit
         scoreRef.on('value', (snapshot) => {
             const serverValue = snapshot.val();
             if (serverValue !== null) {
@@ -111,15 +121,15 @@
             }
         });
 
-        // KLICK-AKTION: Zählt hoch und synchronisiert die Transaktion
+        // KLICK-LOGIK
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // UI sofort hochzählen, damit das Klickgefühl flüssig bleibt
+            // UI zählt lokal sofort hoch, damit das Tippen flüssig wirkt
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Google Transaktion ausführen: Zählt auf dem Server fehlerfrei +1 dazu
+            // Sende sichere Server-Transaktion (+1 auf den echten Cloudwert)
             scoreRef.transaction((currentValue) => {
                 return (currentValue || 0) + 1;
             });
