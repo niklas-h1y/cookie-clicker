@@ -86,7 +86,7 @@
 <body>
 
     <div class="stats-container">
-        <span class="online-count">🌍 Global Live Mode</span>
+        <span class="online-count">🚀 Powered by AWS DynamoDB</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Highest Score Ever</p>
         <h1 id="global-counter">Loading...</h1>
     </div>
@@ -95,7 +95,7 @@
         <div class="cookie">
             <div class="chip"></div>
             <div class="chip"></div>
-            <div class="chip"></div>
+            <div class="cookie-container"></div>
             <div class="chip"></div>
             <div class="chip"></div>
             <div class="chip"></div>
@@ -106,17 +106,23 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Eine stabile, offene Schnittstelle, die nur eine Zahl speichert
-        const serverUrl = "https://scrimba.com";
-        const hitUrl = "https://scrimba.com/increment";
+        // Meine AWS Lambda-Schnittstelle, die direkt mit DynamoDB verbunden ist
+        const awsUrl = "https://on.aws";
 
-        // Funktion: Die höchste Zahl vom Internet-Server abfragen
-        function loadHighestScore() {
-            fetch(serverUrl)
+        let localHighestScore = 0;
+
+        // Funktion: Die Zahl direkt aus der AWS-Datenbank abrufen
+        function loadAWSScore() {
+            fetch(awsUrl)
             .then(res => res.json())
             .then(data => {
-                if (data.count !== undefined) {
-                    counterEl.innerText = parseInt(data.count).toLocaleString();
+                if (data.clicks !== undefined) {
+                    let serverValue = parseInt(data.clicks) || 0;
+                    // Nur aktualisieren, wenn der Serverwert höher oder gleich ist
+                    if (serverValue >= localHighestScore) {
+                        localHighestScore = serverValue;
+                        counterEl.innerText = localHighestScore.toLocaleString();
+                    }
                 }
             })
             .catch(() => {
@@ -124,20 +130,32 @@
             });
         }
 
-        // Alle 3 Sekunden den aktuellen Rekordwert aus dem Netz holen
-        loadHighestScore();
-        setInterval(loadHighestScore, 3000);
+        // Takt: Alle 3 Sekunden live mit AWS synchronisieren
+        loadAWSScore();
+        setInterval(loadAWSScore, 3000);
 
-        // Klick-Aktion: Rechnet auf dem Bildschirm +1 und meldet es dem Server
+        // Klick-Aktion: Zählt sofort auf dem Tablet hoch und sichert es in der AWS-Cloud
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Sofortige optische Reaktion auf deinem Bildschirm
-            let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            counterEl.innerText = (current + 1).toLocaleString();
+            localHighestScore++;
+            counterEl.innerText = localHighestScore.toLocaleString();
 
-            // Befehl an den Online-Speicher: "Zahl um 1 erhöhen und fest speichern"
-            fetch(hitUrl, { method: "POST" });
+            // Sende den Klick an AWS Lambda. DynamoDB speichert den Wert atomar ab!
+            fetch(awsUrl, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.clicks !== undefined) {
+                    let freshServerValue = parseInt(data.clicks) || 0;
+                    if (freshServerValue > localHighestScore) {
+                        localHighestScore = freshServerValue;
+                        counterEl.innerText = localHighestScore.toLocaleString();
+                    }
+                }
+            });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
