@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
-    <!-- Offizielle KVdb-Bibliothek laden, um CORS-Fehler zu verhindern -->
-    <script src="https://unpkg.com/kvdb.io@v1.0"></script>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -81,47 +79,50 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        // Verbindung zum KVdb-Bucket über die offizielle Bibliothek herstellen
-        const bucket = KVdb.bucket('EAM71nkDKB4vF1egpkdB9P');
+        // Neuer, stabiler Server-Pfad mit deiner persönlichen ID
+        const BUCKET_ID = "EAM71nkDKB4vF1egpkdB9P";
+        const getUrl = `https://jasoncameron.dev{BUCKET_ID}/cookies`;
+        const hitUrl = `https://jasoncameron.dev{BUCKET_ID}/cookies`;
 
-        let localScore = 0;
-        let globalHighestScore = 0;
+        let currentGlobalScore = 0;
 
-        // Funktion 1: Den Highscore sicher über die Bibliothek laden
+        // Funktion 1: Holt den aktuellen weltweiten Stand vom Server
         function loadScoreFromServer() {
-            bucket.get('highscore')
-            .then(val => {
-                let serverValue = parseInt(val) || 0;
-                globalHighestScore = serverValue;
-                
-                // Höchsten Wert anzeigen
-                let displayScore = Math.max(localScore, globalHighestScore);
-                counterEl.innerText = displayScore.toLocaleString();
+            fetch(getUrl)
+            .then(res => res.json())
+            .then(data => {
+                let serverValue = parseInt(data.value) || 0;
+                // Nur aktualisieren, wenn der Serverwert höher als unsere lokale Anzeige ist
+                if (serverValue > currentGlobalScore) {
+                    currentGlobalScore = serverValue;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                }
             })
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Beim Start laden und alle 2 Sekunden aktualisieren
+        // Beim Start einmal direkt laden und alle 2 Sekunden aktualisieren
         loadScoreFromServer();
         setInterval(loadScoreFromServer, 2000);
 
-        // Klick-Aktion
+        // Klick-Aktion: Erhöht den Zähler lokal und meldet einen "+1 Hit" an den Server
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            localScore++;
-            
-            let displayScore = Math.max(localScore, globalHighestScore);
-            counterEl.innerText = displayScore.toLocaleString();
+            currentGlobalScore++;
+            counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Nur speichern, wenn man den weltweiten Highscore geschlagen hat
-            if (localScore > globalHighestScore) {
-                bucket.set('highscore', localScore.toString())
-                .then(() => {
-                    globalHighestScore = localScore;
-                })
-                .catch(err => console.error("Speicherfehler:", err));
-            }
+            // Löst einen sicheren Hit-Zähler aus (Server rechnet automatisch +1)
+            fetch(hitUrl)
+            .then(res => res.json())
+            .then(data => {
+                let serverValue = parseInt(data.value) || currentGlobalScore;
+                if (serverValue > currentGlobalScore) {
+                    currentGlobalScore = serverValue;
+                    counterEl.innerText = currentGlobalScore.toLocaleString();
+                }
+            })
+            .catch(err => console.error("Sende-Fehler:", err));
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
