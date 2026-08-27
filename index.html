@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Global Cookie Clicker</title>
     
-    <!-- Die 4 benötigten Firebase-Bibliotheken für fehlerfreies Laden -->
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
     <script src="https://gstatic.com"></script>
@@ -69,7 +68,6 @@
 <body>
 
     <div class="stats-container">
-        <!-- Der globale Live-Zähler -->
         <h1 id="global-counter">0</h1>
     </div>
 
@@ -88,7 +86,6 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Die Verbindung zu deiner Google Firebase Live-Datenbank
         const firebaseConfig = {
             databaseURL: "https://firebasedatabase.app"
         };
@@ -102,8 +99,6 @@
 
         let currentGlobalScore = 0;
 
-        // UNSICHTBARER EINMAL-RESET:
-        // Nutzt das heutige Datum (27. August 2026), um die Datenbank beim allerersten Laden unbemerkt auf 0 zu leeren.
         const heute = new Date();
         if (heute.getFullYear() === 2026 && heute.getMonth() === 7 && heute.getDate() === 27) {
             if (!localStorage.getItem('init_complete')) {
@@ -112,7 +107,6 @@
             }
         }
 
-        // LIVE-EMPFANG: Google schickt jede Änderung in Millisekunden an alle Bildschirme weltweit
         scoreRef.on('value', (snapshot) => {
             const serverValue = snapshot.val();
             if (serverValue !== null) {
@@ -121,15 +115,12 @@
             }
         });
 
-        // KLICK-LOGIK
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // UI zählt lokal sofort hoch, damit das Tippen flüssig wirkt
             currentGlobalScore++;
             counterEl.innerText = currentGlobalScore.toLocaleString();
 
-            // Sende sichere Server-Transaktion (+1 auf den echten Cloudwert)
             scoreRef.transaction((currentValue) => {
                 return (currentValue || 0) + 1;
             });
