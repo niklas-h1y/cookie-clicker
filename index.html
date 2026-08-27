@@ -88,7 +88,7 @@
     <div class="stats-container">
         <span class="online-count">🌍 Global Live Mode</span>
         <p style="color: #bdc3c7; margin: 15px 0 5px 0; text-transform: uppercase; letter-spacing: 2px; font-size: 0.9rem;">Global Clicks</p>
-        <h1 id="global-counter">0</h1>
+        <h1 id="global-counter">Loading...</h1>
     </div>
 
     <div class="cookie-container" id="cookie-btn">
@@ -106,35 +106,59 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
         
-        const counterKey = "niklash1y_cookie_game_2026";
+        // Verwende den Scrimba-Zählerdienst, der echtes atomares Hochzählen unterstützt
+        const counterKey = "niklash1y_global_clicks_v3";
         const getUrl = `https://scrimba.com{counterKey}`;
         const hitUrl = `https://scrimba.com{counterKey}/increment`;
 
-        // Funktion: Spielstand alle 3 Sekunden sauber vom Server holen
+        let currentScore = 0;
+
+        // Funktion: Spielstand vom Server holen und nur erhöhen (niemals verringern)
         function getGlobalScore() {
             fetch(getUrl)
             .then(res => res.json())
             .then(data => {
                 if (data.count !== undefined) {
-                    counterEl.innerText = parseInt(data.count).toLocaleString();
+                    let serverValue = parseInt(data.count) || 0;
+                    
+                    // 🛡️ REKORD-SCHUTZ: Der Zähler darf niemals kleiner werden als das, was wir schon wissen!
+                    if (serverValue >= currentScore) {
+                        currentScore = serverValue;
+                        counterEl.innerText = currentScore.toLocaleString();
+                    }
                 }
             })
-            .catch(() => {});
+            .catch(() => {
+                if(counterEl.innerText === "Loading...") {
+                    counterEl.innerText = "0";
+                }
+            });
         }
 
-        // Aktualisierung auf exakt 3000 Millisekunden (3 Sekunden) gesetzt
+        // Alle 3 Sekunden den echten Stand vom Server laden
         getGlobalScore();
         setInterval(getGlobalScore, 3000);
 
-        // Klick-Aktion: Erhöht den Wert auf dem Bildschirm sofort und funkt den Server an
+        // Klick-Aktion: Zählt sofort auf dem Bildschirm hoch und schickt den Klick ab
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            let current = parseInt(counterEl.innerText.replace(/,/g, '')) || 0;
-            counterEl.innerText = (current + 1).toLocaleString();
+            // Sofortige optische Reaktion auf dem Tablet
+            currentScore++;
+            counterEl.innerText = currentScore.toLocaleString();
 
-            // Klick an die offene Cloud senden
-            fetch(hitUrl, { method: "POST" });
+            // Sende NUR das Signal zum Erhöhen an die Cloud – der Server rechnet selbst +1!
+            fetch(hitUrl, { method: "POST" })
+            .then(res => res.json())
+            .then(data => {
+                if (data.count !== undefined) {
+                    let freshServerValue = parseInt(data.count) || 0;
+                    if (freshServerValue > currentScore) {
+                        currentScore = freshServerValue;
+                        counterEl.innerText = currentScore.toLocaleString();
+                    }
+                }
+            });
 
             createSparkle(e.clientX, e.clientY);
             if (navigator.vibrate) {
