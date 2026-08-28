@@ -80,6 +80,7 @@
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
+        // Extracting your base project routing from the anon key parameters
         const BASE_URL = "https://supabase.co";
         const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YmNzaGNsbWttZmJ5Z3Nodmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3ODg3NTIsImV4cCI6MjA0MDM2NDc1Mn0.39-Y8vL6_gY-g1C5wS4_WwK4_Y-g1C5wS4_WwK4_Y-g";
 
@@ -93,13 +94,11 @@
             "Prefer": "return=representation"
         };
 
-        // Funktion: Weltrekord laden und beim ersten Start direkt um 1 erhöhen
         function loadScoreFromServer(isFirstLoad = false) {
             fetch(`${BASE_URL}?id=eq.global_record`, { method: "GET", headers: headers })
             .then(res => res.json())
             .then(data => {
                 if (data && data.length > 0) {
-                    // WICHTIGE KORREKTUR: data[0].clicks liest den echten Wert aus der Liste aus!
                     let serverValue = parseInt(data[0].clicks) || 0;
                     globalHighestScore = serverValue;
                     
@@ -110,7 +109,6 @@
                             localStorage.setItem('my_cookie_clicks', localScore);
                         }
                         
-                        // Den erhöhten Wert direkt an den Server senden
                         fetch(`${BASE_URL}?id=eq.global_record`, {
                             method: "PATCH",
                             headers: headers,
@@ -125,15 +123,12 @@
             .catch(err => console.error("Ladefehler:", err));
         }
 
-        // Beim ersten Laden ausführen (+1 Bonus)
         loadScoreFromServer(true);
         
-        // Alle 2 Sekunden global im Hintergrund für jeden synchronisieren
         setInterval(() => {
             loadScoreFromServer(false);
         }, 2000);
 
-        // Klick-Aktion
         cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
@@ -154,7 +149,6 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data && data.length > 0) {
-                        // KORREKTUR: Auch hier data[0].clicks eingepflegt!
                         globalHighestScore = parseInt(data[0].clicks) || localScore;
                     }
                 })
