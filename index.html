@@ -76,89 +76,97 @@
         </div>
     </div>
 
+    <!-- Lädt die offizielle Supabase-Bibliothek für WebSockets -->
+    <script src="https://jsdelivr.net"></script>
     <script>
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Extracting your base project routing from the anon key parameters
-        const BASE_URL = "https://supabase.co";
-        const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YmNzaGNsbWttZmJ5Z3Nodmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3ODg3NTIsImV4cCI6MjA0MDM2NDc1Mn0.39-Y8vL6_gY-g1C5wS4_WwK4_Y-g1C5wS4_WwK4_Y-g";
+        // Deine eigene neue Projekt-URL und dein verknüpfter API-Key
+        const PROJECT_URL = "https://supabase.co";
+        const anonKey = "sb_publishable_NiFlig3IoBNLbIcftt87cg_Gk9XTyOH";
+
+        // Supabase Client initialisieren
+        const supabaseClient = supabase.createClient(PROJECT_URL, anonKey);
 
         let localScore = parseInt(localStorage.getItem('my_cookie_clicks')) || 0;
         let globalHighestScore = 0;
 
-        const headers = {
-            "apikey": anonKey,
-            "Authorization": `Bearer ${anonKey}`,
-            "Content-Type": "application/json",
-            "Prefer": "return=representation"
-        };
-
-        function loadScoreFromServer(isFirstLoad = false) {
-            fetch(`${BASE_URL}?id=eq.global_record`, { method: "GET", headers: headers })
-            .then(res => res.json())
-            .then(data => {
-                if (data && data.length > 0) {
-                    let serverValue = parseInt(data[0].clicks) || 0;
-                    globalHighestScore = serverValue;
-                    
-                    if (isFirstLoad) {
-                        globalHighestScore++;
-                        if (localScore < globalHighestScore) {
-                            localScore = globalHighestScore;
-                            localStorage.setItem('my_cookie_clicks', localScore);
-                        }
-                        
-                        fetch(`${BASE_URL}?id=eq.global_record`, {
-                            method: "PATCH",
-                            headers: headers,
-                            body: JSON.stringify({ clicks: globalHighestScore })
-                        }).catch(() => {});
-                    }
-
-                    let displayScore = Math.max(localScore, globalHighestScore);
-                    counterEl.innerText = displayScore.toLocaleString();
-                }
-            })
-            .catch(err => console.error("Ladefehler:", err));
+        function updateUI() {
+            let displayScore = Math.max(localScore, globalHighestScore);
+            counterEl.innerText = displayScore.toLocaleString();
         }
 
-        loadScoreFromServer(true);
-        
-        setInterval(() => {
-            loadScoreFromServer(false);
-        }, 2000);
+        // Lädt den Highscore direkt beim Starten der Seite
+        async function loadInitialScore() {
+            try {
+                const { data, error } = await supabaseClient
+                    .from('global_record')
+                    .select('clicks')
+                    .eq('id', 'global_record')
+                    .maybeSingle();
 
-        cookieBtn.addEventListener('pointerdown', (e) => {
+                if (error) throw error;
+
+                if (data) {
+                    globalHighestScore = parseInt(data.clicks) || 0;
+                    
+                    if (localScore < globalHighestScore) {
+                        localScore = globalHighestScore;
+                        localStorage.setItem('my_cookie_clicks', localScore);
+                    } else if (localScore > globalHighestScore) {
+                        await supabaseClient
+                            .from('global_record')
+                            .update({ clicks: localScore })
+                            .eq('id', 'global_record');
+                    }
+                    updateUI();
+                }
+            } catch (err) {
+                console.error("Ladefehler:", err);
+            }
+        }
+
+        // Live WebSocket-Verbindung für sofortige Klicks von allen Spielern
+        const channels = supabaseClient.channel('custom-update-channel')
+        .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'global_record', filter: 'id=eq.global_record' },
+            (payload) => {
+                if (payload.new && payload.new.clicks) {
+                    globalHighestScore = parseInt(payload.new.clicks) || 0;
+                    updateUI();
+                }
+            }
+        )
+        .subscribe();
+
+        // Klick-Aktion für den Cookie
+        cookieBtn.addEventListener('pointerdown', async (e) => {
             e.preventDefault();
             
             localScore++;
             localStorage.setItem('my_cookie_clicks', localScore);
-
-            let displayScore = Math.max(localScore, globalHighestScore);
-            counterEl.innerText = displayScore.toLocaleString();
+            updateUI();
 
             if (localScore > globalHighestScore) {
-                const updateUrl = `${BASE_URL}?id=eq.global_record&clicks=lt.${localScore}`;
-                
-                fetch(updateUrl, {
-                    method: "PATCH",
-                    headers: headers,
-                    body: JSON.stringify({ clicks: localScore })
-                })
-                .then(res => res.json())
-                .then(data => {
-                    if (data && data.length > 0) {
-                        globalHighestScore = parseInt(data[0].clicks) || localScore;
-                    }
-                })
-                .catch(err => console.error("Sende-Fehler:", err));
+                try {
+                    await supabaseClient
+                        .from('global_record')
+                        .update({ clicks: localScore })
+                        .eq('id', 'global_record')
+                        .lt('clicks', localScore);
+                } catch (err) {
+                    console.error("Sende-Fehler:", err);
+                }
             }
 
             if (navigator.vibrate) {
                 navigator.vibrate(15); 
             }
         });
+
+        loadInitialScore();
     </script>
 </body>
 </html>
