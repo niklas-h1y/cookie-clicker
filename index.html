@@ -34,6 +34,7 @@
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
+            position: relative; /* WICHTIG: Damit die +1 Zahlen relativ zum Keks positioniert werden können */
         }
         .cookie-container:active {
             transform: scale(0.92);
@@ -57,6 +58,31 @@
         .chip:nth-child(4) { width: 25px; height: 25px; top: 140px; left: 115px; }
         .chip:nth-child(5) { width: 30px; height: 22px; top: 100px; left: 160px; }
         .chip:nth-child(6) { width: 22px; height: 22px; top: 160px; left: 70px; }
+
+        /* NEU: Styling für die aufsteigenden +1 Zahlen */
+        .click-floating-text {
+            position: absolute;
+            font-size: 1.8rem;
+            font-weight: bold;
+            color: #f1c40f; /* Schönes Cookie-Goldgelb */
+            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+            pointer-events: none; /* Ignoriert Klicks, damit man durch sie hindurchklicken kann */
+            animation: floatUpAndFade 0.8s ease-out forwards;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* NEU: Animation für das Schweben und Verblassen */
+        @keyframes floatUpAndFade {
+            0% {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+            100% {
+                opacity: 0;
+                transform: translate(-50%, -120px) scale(0.8);
+            }
+        }
     </style>
 </head>
 <body>
@@ -76,28 +102,22 @@
         </div>
     </div>
 
-    <!-- Lädt die offizielle Supabase-Bibliothek für WebSockets -->
     <script src="https://jsdelivr.net"></script>
     <script>
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
 
-        // Deine eigene neue Projekt-URL und dein verknüpfter API-Key
-        const PROJECT_URL = "https://supabase.co";
+        const PROJECT_URL = "https://supabase.com";
         const anonKey = "sb_publishable_NiFlig3IoBNLbIcftt87cg_Gk9XTyOH";
 
-        // Supabase Client initialisieren
         const supabaseClient = supabase.createClient(PROJECT_URL, anonKey);
 
-        let localScore = parseInt(localStorage.getItem('my_cookie_clicks')) || 0;
         let globalHighestScore = 0;
 
         function updateUI() {
-            let displayScore = Math.max(localScore, globalHighestScore);
-            counterEl.innerText = displayScore.toLocaleString();
+            counterEl.innerText = globalHighestScore.toLocaleString();
         }
 
-        // Lädt den Highscore direkt beim Starten der Seite
         async function loadInitialScore() {
             try {
                 const { data, error } = await supabaseClient
@@ -110,16 +130,6 @@
 
                 if (data) {
                     globalHighestScore = parseInt(data.clicks) || 0;
-                    
-                    if (localScore < globalHighestScore) {
-                        localScore = globalHighestScore;
-                        localStorage.setItem('my_cookie_clicks', localScore);
-                    } else if (localScore > globalHighestScore) {
-                        await supabaseClient
-                            .from('global_record')
-                            .update({ clicks: localScore })
-                            .eq('id', 'global_record');
-                    }
                     updateUI();
                 }
             } catch (err) {
@@ -127,13 +137,12 @@
             }
         }
 
-        // Live WebSocket-Verbindung für sofortige Klicks von allen Spielern
         const channels = supabaseClient.channel('custom-update-channel')
         .on(
             'postgres_changes',
             { event: 'UPDATE', schema: 'public', table: 'global_record', filter: 'id=eq.global_record' },
             (payload) => {
-                if (payload.new && payload.new.clicks) {
+                if (payload.new && typeof payload.new.clicks !== 'undefined') {
                     globalHighestScore = parseInt(payload.new.clicks) || 0;
                     updateUI();
                 }
@@ -141,24 +150,47 @@
         )
         .subscribe();
 
-        // Klick-Aktion für den Cookie
+        // NEU: Funktion zur Erstellung des schwebenden "+1"-Textes
+        function createFloatingText(clientX, clientY) {
+            const rect = cookieBtn.getBoundingClientRect();
+            
+            // Berechnet die exakte Klick-Position relativ zum Keks-Container
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            const textEl = document.createElement('div');
+            textEl.classList.add('click-floating-text');
+            textEl.innerText = '+1';
+            textEl.style.left = `${x}px`;
+            textEl.style.top = `${y}px`;
+
+            cookieBtn.appendChild(textEl);
+
+            // Löscht das Element nach Ablauf der Animation automatisch aus dem HTML, um RAM zu sparen
+            setTimeout(() => {
+                textEl.remove();
+            }, 800);
+        }
+
         cookieBtn.addEventListener('pointerdown', async (e) => {
             e.preventDefault();
             
-            localScore++;
-            localStorage.setItem('my_cookie_clicks', localScore);
+            // Löst den schwebenden Text exakt an den Klick-Koordinaten aus
+            createFloatingText(e.clientX, e.clientY);
+
+            globalHighestScore++;
             updateUI();
 
-            if (localScore > globalHighestScore) {
-                try {
+            try {
+                const { error } = await supabaseClient.rpc('increment_clicks');
+                if (error) {
                     await supabaseClient
                         .from('global_record')
-                        .update({ clicks: localScore })
-                        .eq('id', 'global_record')
-                        .lt('clicks', localScore);
-                } catch (err) {
-                    console.error("Sende-Fehler:", err);
+                        .update({ clicks: globalHighestScore })
+                        .eq('id', 'global_record');
                 }
+            } catch (err) {
+                console.error("Sende-Fehler:", err);
             }
 
             if (navigator.vibrate) {
