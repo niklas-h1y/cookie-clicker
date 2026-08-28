@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Global Cookie Clicker</title>
+    <title>Cookie Clicker - Ultra Prototype</title>
     <style>
         body {
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
@@ -17,34 +17,65 @@
             margin: 0;
             overflow: hidden;
             touch-action: manipulation;
+            perspective: 1000px;
         }
+        
+        .stats-indicator {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            backdrop-filter: blur(5px);
+            border: 1px rgba(255, 255, 255, 0.1) solid;
+            user-select: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .frenzy-indicator {
+            color: #f1c40f;
+            font-size: 0.85rem;
+            animation: pulse 1s infinite;
+            display: none;
+        }
+
         .stats-container {
             text-align: center;
             margin-bottom: 30px;
         }
         h1 {
-            font-size: 3.5rem;
+            font-size: 4rem;
             margin: 0;
-            text-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            text-shadow: 0 4px 10px rgba(0,0,0,0.4);
             user-select: none;
+            transition: transform 0.1s ease;
         }
+        
         .cookie-container {
             cursor: pointer;
-            transition: transform 0.05s ease;
+            transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             user-select: none;
             -webkit-user-select: none;
             touch-action: none;
-            position: relative; /* WICHTIG: Damit die +1 Zahlen relativ zum Keks positioniert werden können */
+            position: relative;
         }
-        .cookie-container:active {
-            transform: scale(0.92);
+        
+        .cookie-pulse {
+            animation: idlePulse 2s infinite ease-in-out;
         }
+
         .cookie {
             width: 220px;
             height: 220px;
             background: radial-gradient(circle at 60px 60px, #d35400, #ba4a00);
             border-radius: 50%;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset -10px -10px 20px rgba(0,0,0,0.4);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6), inset -10px -10px 20px rgba(0,0,0,0.4);
             position: relative;
         }
         .chip {
@@ -59,39 +90,112 @@
         .chip:nth-child(5) { width: 30px; height: 22px; top: 100px; left: 160px; }
         .chip:nth-child(6) { width: 22px; height: 22px; top: 160px; left: 70px; }
 
-        /* NEU: Styling für die aufsteigenden +1 Zahlen */
         .click-floating-text {
             position: absolute;
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #f1c40f; /* Schönes Cookie-Goldgelb */
-            text-shadow: 0 2px 4px rgba(0,0,0,0.5);
-            pointer-events: none; /* Ignoriert Klicks, damit man durch sie hindurchklicken kann */
-            animation: floatUpAndFade 0.8s ease-out forwards;
+            font-size: 2rem;
+            font-weight: 900;
+            color: #fff;
+            text-shadow: 0 4px 8px rgba(0,0,0,0.5);
+            pointer-events: none;
+            animation: floatUpAndFade 0.8s cubic-bezier(0.25, 1, 0.5, 1) forwards;
             user-select: none;
             -webkit-user-select: none;
         }
+        .text-gold {
+            color: #f1c40f !important;
+            font-size: 2.5rem;
+        }
 
-        /* NEU: Animation für das Schweben und Verblassen */
+        .golden-cookie {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            background: radial-gradient(circle at 20px 20px, #f1c40f, #f39c12);
+            border-radius: 50%;
+            box-shadow: 0 0 25px #f1c40f, inset -3px -3px 8px rgba(0,0,0,0.4);
+            cursor: pointer;
+            z-index: 100;
+            animation: spawnFly 10s linear forwards;
+        }
+
+        .shop-container {
+            margin-top: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            width: 320px;
+            user-select: none;
+        }
+        .shop-button {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: white;
+            padding: 14px 20px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(5px);
+        }
+        .shop-button:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.15);
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .shop-button:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        .shop-button:disabled {
+            background: rgba(0, 0, 0, 0.4);
+            border-color: transparent;
+            color: rgba(255, 255, 255, 0.25);
+            cursor: not-allowed;
+        }
+        .shop-button .price {
+            color: #2ecc71;
+            font-weight: bold;
+        }
+        .shop-button:disabled .price {
+            color: #c0392b;
+        }
+
         @keyframes floatUpAndFade {
-            0% {
-                opacity: 1;
-                transform: translate(-50%, -50%) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(-50%, -120px) scale(0.8);
-            }
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.8) rotate(-10deg); }
+            50% { transform: translate(-50%, -80px) scale(1.1) rotate(5deg); }
+            100% { opacity: 0; transform: translate(-50%, -160px) scale(0.8) rotate(0deg); }
+        }
+        @keyframes idlePulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+        @keyframes spawnFly {
+            0% { top: 110%; left: -10%; transform: rotate(0deg); }
+            50% { top: 30%; left: 50%; transform: rotate(180deg); }
+            100% { top: -20%; left: 110%; transform: rotate(360deg); }
+        }
+        @keyframes pulse {
+            0% { opacity: 0.6; }
+            50% { opacity: 1; }
+            100% { opacity: 0.6; }
         }
     </style>
 </head>
 <body>
 
+    <div class="stats-indicator">
+        <span id="cps-count">CPS: 0</span>
+        <span id="frenzy-timer" class="frenzy-indicator">⚡ FRENZY (7x)!!</span>
+    </div>
+
     <div class="stats-container">
         <h1 id="global-counter">0</h1>
     </div>
 
-    <div class="cookie-container" id="cookie-btn">
+    <div class="cookie-container cookie-pulse" id="cookie-btn">
         <div class="cookie">
             <div class="chip"></div>
             <div class="chip"></div>
@@ -102,103 +206,166 @@
         </div>
     </div>
 
-    <script src="https://jsdelivr.net"></script>
-    <script>
+    <div class="shop-container">
+        <button class="shop-button" id="buy-grandma" disabled>
+            <div>👵 Oma <br><small>+1 Klick/Sek. (<span id="count-grandma">0</span>)</small></div>
+            <span class="price" id="price-grandma">15</span>
+        </button>
+        <button class="shop-button" id="buy-factory" disabled>
+            <div>🏭 Fabrik <br><small>+5 Klicks/Sek. (<span id="count-factory">0</span>)</small></div>
+            <span class="price" id="price-factory">100</span>
+        </button>
+    </div>
+        <script>
         const counterEl = document.getElementById('global-counter');
         const cookieBtn = document.getElementById('cookie-btn');
+        const cpsCountEl = document.getElementById('cps-count');
+        const frenzyTimerEl = document.getElementById('frenzy-timer');
+        
+        const buyGrandmaBtn = document.getElementById('buy-grandma');
+        const buyFactoryBtn = document.getElementById('buy-factory');
 
-        const PROJECT_URL = "https://supabase.com";
-        const anonKey = "sb_publishable_NiFlig3IoBNLbIcftt87cg_Gk9XTyOH";
+        let localScore = parseInt(localStorage.getItem('proto_cookie_clicks')) || 0;
+        let grandmas = parseInt(localStorage.getItem('proto_grandmas')) || 0;
+        let factories = parseInt(localStorage.getItem('proto_factories')) || 0;
+        
+        let clickMultiplier = 1;
+        let isFrenzy = false;
+        let frenzyTimeout;
 
-        const supabaseClient = supabase.createClient(PROJECT_URL, anonKey);
+        function getCps() {
+            let baseCps = (grandmas * 1) + (factories * 5);
+            return isFrenzy ? baseCps * 7 : baseCps;
+        }
 
-        let globalHighestScore = 0;
+        function getGrandmaPrice() { return Math.floor(15 * Math.pow(1.15, grandmas)); }
+        function getFactoryPrice() { return Math.floor(100 * Math.pow(1.15, factories)); }
 
         function updateUI() {
-            counterEl.innerText = globalHighestScore.toLocaleString();
-        }
-
-        async function loadInitialScore() {
-            try {
-                const { data, error } = await supabaseClient
-                    .from('global_record')
-                    .select('clicks')
-                    .eq('id', 'global_record')
-                    .maybeSingle();
-
-                if (error) throw error;
-
-                if (data) {
-                    globalHighestScore = parseInt(data.clicks) || 0;
-                    updateUI();
-                }
-            } catch (err) {
-                console.error("Ladefehler:", err);
-            }
-        }
-
-        const channels = supabaseClient.channel('custom-update-channel')
-        .on(
-            'postgres_changes',
-            { event: 'UPDATE', schema: 'public', table: 'global_record', filter: 'id=eq.global_record' },
-            (payload) => {
-                if (payload.new && typeof payload.new.clicks !== 'undefined') {
-                    globalHighestScore = parseInt(payload.new.clicks) || 0;
-                    updateUI();
-                }
-            }
-        )
-        .subscribe();
-
-        // NEU: Funktion zur Erstellung des schwebenden "+1"-Textes
-        function createFloatingText(clientX, clientY) {
-            const rect = cookieBtn.getBoundingClientRect();
+            counterEl.innerText = Math.floor(localScore).toLocaleString();
+            cpsCountEl.innerText = `CPS: ${getCps().toLocaleString()}`;
             
-            // Berechnet die exakte Klick-Position relativ zum Keks-Container
+            document.getElementById('count-grandma').innerText = grandmas;
+            const gPrice = getGrandmaPrice();
+            document.getElementById('price-grandma').innerText = gPrice.toLocaleString();
+            buyGrandmaBtn.disabled = localScore < gPrice;
+
+            document.getElementById('count-factory').innerText = factories;
+            const fPrice = getFactoryPrice();
+            document.getElementById('price-factory').innerText = fPrice.toLocaleString();
+            buyFactoryBtn.disabled = localScore < fPrice;
+        }
+
+        function saveProgress() {
+            localStorage.setItem('proto_cookie_clicks', Math.floor(localScore));
+            localStorage.setItem('proto_grandmas', grandmas);
+            localStorage.setItem('proto_factories', factories);
+        }
+
+        setInterval(() => {
+            const cps = getCps();
+            if (cps > 0) {
+                localScore += cps / 10;
+                updateUI();
+            }
+        }, 100);
+
+        setInterval(saveProgress, 10000);
+
+        function createFloatingText(clientX, clientY, text, isGold = false) {
+            const rect = cookieBtn.getBoundingClientRect();
             const x = clientX - rect.left;
             const y = clientY - rect.top;
 
             const textEl = document.createElement('div');
             textEl.classList.add('click-floating-text');
-            textEl.innerText = '+1';
+            if (isGold) textEl.classList.add('text-gold');
+            textEl.innerText = text;
             textEl.style.left = `${x}px`;
             textEl.style.top = `${y}px`;
 
             cookieBtn.appendChild(textEl);
-
-            // Löscht das Element nach Ablauf der Animation automatisch aus dem HTML, um RAM zu sparen
-            setTimeout(() => {
-                textEl.remove();
-            }, 800);
+            setTimeout(() => textEl.remove(), 800);
         }
 
-        cookieBtn.addEventListener('pointerdown', async (e) => {
+        cookieBtn.addEventListener('pointerdown', (e) => {
             e.preventDefault();
             
-            // Löst den schwebenden Text exakt an den Klick-Koordinaten aus
-            createFloatingText(e.clientX, e.clientY);
+            let gain = isFrenzy ? 7 : 1;
+            localScore += gain;
+            
+            createFloatingText(e.clientX, e.clientY, `+${gain}`, isFrenzy);
 
-            globalHighestScore++;
+            const rect = cookieBtn.getBoundingClientRect();
+            const clickX = e.clientX - rect.left - rect.width / 2;
+            const clickY = e.clientY - rect.top - rect.height / 2;
+            const tiltX = -(clickY / (rect.height / 2)) * 12;
+            const tiltY = (clickX / (rect.width / 2)) * 12;
+            
+            cookieBtn.style.transform = `scale(0.90) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+            counterEl.style.transform = 'scale(1.05)';
+
             updateUI();
 
-            try {
-                const { error } = await supabaseClient.rpc('increment_clicks');
-                if (error) {
-                    await supabaseClient
-                        .from('global_record')
-                        .update({ clicks: globalHighestScore })
-                        .eq('id', 'global_record');
-                }
-            } catch (err) {
-                console.error("Sende-Fehler:", err);
-            }
+            if (navigator.vibrate) navigator.vibrate(12);
+        });
 
-            if (navigator.vibrate) {
-                navigator.vibrate(15); 
+        window.addEventListener('pointerup', () => {
+            cookieBtn.style.transform = 'scale(1) rotateX(0deg) rotateY(0deg)';
+            counterEl.style.transform = 'scale(1)';
+        });
+
+        buyGrandmaBtn.addEventListener('click', () => {
+            const price = getGrandmaPrice();
+            if (localScore >= price) {
+                localScore -= price;
+                grandmas++;
+                updateUI();
+                saveProgress();
             }
         });
 
-        loadInitialScore();
+        buyFactoryBtn.addEventListener('click', () => {
+            const price = getFactoryPrice();
+            if (localScore >= price) {
+                localScore -= price;
+                factories++;
+                updateUI();
+                saveProgress();
+            }
+        });
+
+        function spawnGoldenCookie() {
+            const gold = document.createElement('div');
+            gold.classList.add('golden-cookie');
+            gold.style.top = `${Math.random() * 60 + 20}%`;
+            document.body.appendChild(gold);
+
+            gold.addEventListener('click', (e) => {
+                e.stopPropagation();
+                isFrenzy = true;
+                frenzyTimerEl.style.display = 'block';
+                
+                createFloatingText(e.clientX, e.clientY, '7x FRENZY!', true);
+                gold.remove();
+                
+                clearTimeout(frenzyTimeout);
+                frenzyTimeout = setTimeout(() => {
+                    isFrenzy = false;
+                    frenzyTimerEl.style.display = 'none';
+                    updateUI();
+                }, 7000);
+                
+                updateUI();
+            });
+
+            setTimeout(() => { if(gold.parentNode) gold.remove(); }, 10000);
+            setTimeout(spawnGoldenCookie, Math.random() * 30000 + 30000);
+        }
+        
+        setTimeout(spawnGoldenCookie, 30000);
+        updateUI();
     </script>
 </body>
 </html>
+
