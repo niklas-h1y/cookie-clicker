@@ -1,570 +1,170 @@
-Cookie Clicker - Evolution Prototyp
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Global Cookie Clicker</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #2c3e50, #1a252f);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+            touch-action: manipulation;
+        }
+        .stats-container {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        h1 {
+            font-size: 3.5rem;
+            margin: 0;
+            text-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            user-select: none;
+        }
+        .cookie-container {
+            cursor: pointer;
+            transition: transform 0.05s ease;
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: none;
+        }
+        .cookie-container:active {
+            transform: scale(0.92);
+        }
+        .cookie {
+            width: 220px;
+            height: 220px;
+            background: radial-gradient(circle at 60px 60px, #d35400, #ba4a00);
+            border-radius: 50%;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset -10px -10px 20px rgba(0,0,0,0.4);
+            position: relative;
+        }
+        .chip {
+            position: absolute;
+            background-color: #3e2723;
+            border-radius: 50%;
+        }
+        .chip:nth-child(1) { width: 28px; height: 23px; top: 45px; left: 55px; }
+        .chip:nth-child(2) { width: 22px; height: 32px; top: 110px; left: 35px; }
+        .chip:nth-child(3) { width: 32px; height: 28px; top: 65px; left: 125px; }
+        .chip:nth-child(4) { width: 25px; height: 25px; top: 140px; left: 115px; }
+        .chip:nth-child(5) { width: 30px; height: 22px; top: 100px; left: 160px; }
+        .chip:nth-child(6) { width: 22px; height: 22px; top: 160px; left: 70px; }
+    </style>
+</head>
+<body>
 
-/* Das :root steht hier absolut richtig im CSS-Bereich (), weit unter dem HTML-Start! */
-:root {
---bg-glass: rgba(255, 255, 255, 0.07);
---border-glass: rgba(255, 255, 255, 0.15);
---gold: #f1c40f;
---green: #2ecc71;
---red: #e74c3c;
-}
-body {
-font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-background: radial-gradient(circle at center, #2c3e50, #141d26);
-color: white;
-display: flex;
-flex-direction: column;
-align-items: center;
-justify-content: center;
-min-height: 100vh;
-margin: 0;
-overflow: hidden;
-touch-action: manipulation;
-perspective: 1000px;
-}
-.game-layout {
-display: flex;
-flex-direction: column;
-align-items: center;
-gap: 20px;
-width: 100%;
-max-width: 400px;
-padding: 20px;
-box-sizing: border-box;
-}
-.stats-indicator {
-position: absolute;
-top: 20px;
-right: 20px;
-background: var(--bg-glass);
-padding: 12px 24px;
-border-radius: 24px;
-font-size: 0.95rem;
-font-weight: 600;
-display: flex;
-flex-direction: column;
-gap: 6px;
-backdrop-filter: blur(12px);
--webkit-backdrop-filter: blur(12px);
-border: 1px solid var(--border-glass);
-user-select: none;
-box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-z-index: 10;
-}
-.frenzy-indicator {
-color: var(--gold);
-font-size: 0.85rem;
-animation: pulse 1s infinite;
-display: none;
-text-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
-}
-.dev-indicator {
-color: var(--red);
-font-size: 0.85rem;
-font-weight: bold;
-display: none;
-text-shadow: 0 0 10px rgba(231, 76, 60, 0.5);
-}
-.stats-container {
-text-align: center;
-margin-top: 20px;
-}
-h1 {
-font-size: 4.5rem;
-margin: 0;
-font-weight: 800;
-background: linear-gradient(to bottom, #ffffff, #e2e8f0);
--webkit-background-clip: text;
--webkit-text-fill-color: transparent;
-text-shadow: 0 4px 20px rgba(0,0,0,0.3);
-user-select: none;
-transition: transform 0.1s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-}
-.cpc-text {
-font-size: 1rem;
-color: #94a3b8;
-margin: 4px 0 0 0;
-font-weight: 500;
-letter-spacing: 0.5px;
-}
-.bakery-name-container {
-width: 100%;
-display: flex;
-justify-content: center;
-}
-.bakery-input {
-background: rgba(0, 0, 0, 0.4);
-border: 1px solid var(--border-glass);
-color: white;
-padding: 10px 20px;
-border-radius: 14px;
-text-align: center;
-font-size: 0.95rem;
-outline: none;
-width: 80%;
-transition: all 0.3s ease;
-backdrop-filter: blur(8px);
-}
-.bakery-input:focus {
-border-color: var(--gold);
-box-shadow: 0 0 15px rgba(241, 196, 15, 0.2);
-background: rgba(0, 0, 0, 0.6);
-}
-.cookie-container {
-cursor: pointer;
-transition: transform 0.15s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-user-select: none;
--webkit-user-select: none;
-touch-action: none;
-position: relative;
-margin: 15px 0;
-}
-.cookie-pulse {
-animation: idlePulse 3s infinite ease-in-out;
-}
-.cookie {
-width: 230px;
-height: 230px;
-background: radial-gradient(circle at 70px 70px, #d35400, #ba4a00);
-border-radius: 50%;
-box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset -12px -12px 24px rgba(0,0,0,0.4);
-position: relative;
-}
-.chip {
-position: absolute;
-background-color: #3e2723;
-border-radius: 50%;
-box-shadow: 1px 1px 2px rgba(0,0,0,0.4);
-}
-.chip:nth-child(1) { width: 30px; height: 25px; top: 50px; left: 60px; }
-.chip:nth-child(2) { width: 24px; height: 34px; top: 115px; left: 40px; }
-.chip:nth-child(3) { width: 34px; height: 30px; top: 70px; left: 130px; }
-.chip:nth-child(4) { width: 26px; height: 26px; top: 145px; left: 120px; }
-.chip:nth-child(5) { width: 32px; height: 24px; top: 105px; left: 170px; }
-.chip:nth-child(6) { width: 24px; height: 24px; top: 165px; left: 75px; }
-.crumb {
-position: absolute;
-background-color: #ba4a00;
-border-radius: 4px;
-pointer-events: none;
-z-index: 5;
-}
-.click-floating-text {
-position: absolute;
-font-size: 2.2rem;
-font-weight: 900;
-color: #fff;
-text-shadow: 0 4px 12px rgba(0,0,0,0.6);
-pointer-events: none;
-animation: floatUpAndFade 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-user-select: none;
-z-index: 20;
-}
-.text-gold { color: var(--gold) !important; font-size: 2.6rem; }
-.golden-cookie {
-position: absolute;
-width: 65px;
-height: 65px;
-background: radial-gradient(circle at 22px 22px, #f1c40f, #f39c12);
-border-radius: 50%;
-box-shadow: 0 0 30px var(--gold), inset -4px -4px 10px rgba(0,0,0,0.4);
-cursor: pointer;
-z-index: 100;
-animation: spawnFly 10s linear forwards;
-}
-.dev-panel {
-display: none;
-gap: 12px;
-width: 100%;
-justify-content: center;
-z-index: 10;
-}
-.dev-btn {
-background: rgba(231, 76, 60, 0.2);
-border: 1px solid rgba(231, 76, 60, 0.4);
-color: #ff7675;
-padding: 8px 16px;
-border-radius: 12px;
-cursor: pointer;
-font-weight: 700;
-font-size: 0.85rem;
-transition: all 0.2s ease;
-backdrop-filter: blur(4px);
-}
-.dev-btn:hover {
-background: rgba(231, 76, 60, 0.4);
-transform: translateY(-1px);
-}
-.shop-container {
-display: flex;
-flex-direction: column;
-gap: 12px;
-width: 100%;
-user-select: none;
-z-index: 10;
-}
-.shop-button {
-background: var(--bg-glass);
-border: 1px solid var(--border-glass);
-color: white;
-padding: 14px 20px;
-border-radius: 18px;
-cursor: pointer;
-font-weight: 600;
-display: flex;
-justify-content: space-between;
-align-items: center;
-transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-backdrop-filter: blur(12px);
--webkit-backdrop-filter: blur(12px);
-box-shadow: 0 4px 16px rgba(0,0,0,0.1);
-}
-.shop-button:hover:not(:disabled) {
-background: rgba(255, 255, 255, 0.14);
-transform: translateY(-2px);
-border-color: rgba(255, 255, 255, 0.3);
-box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-}
-.shop-button:active:not(:disabled) {
-transform: translateY(0);
-}
-.shop-button:disabled {
-background: rgba(0, 0, 0, 0.25);
-border-color: rgba(255, 255, 255, 0.05);
-color: rgba(255, 255, 255, 0.2);
-cursor: not-allowed;
-box-shadow: none;
-}
-.shop-button .item-info {
-display: flex;
-flex-direction: column;
-align-items: flex-start;
-gap: 2px;
-}
-.shop-button small {
-color: #94a3b8;
-font-size: 0.8rem;
-font-weight: 400;
-}
-.shop-button:disabled small {
-color: rgba(255, 255, 255, 0.15);
-}
-.shop-button .price {
-color: var(--green);
-font-weight: 700;
-font-size: 1.1rem;
-background: rgba(46, 204, 113, 0.1);
-padding: 4px 10px;
-border-radius: 10px;
-transition: all 0.2s ease;
-}
-.shop-button:disabled .price {
-color: #e2e8f0;
-background: rgba(255, 255, 255, 0.05);
-}
-.achievement-toast {
-position: absolute;
-bottom: -120px;
-left: 20px;
-background: linear-gradient(135deg, #f39c12, #d35400);
-color: white;
-padding: 14px 24px;
-border-radius: 18px;
-display: flex;
-flex-direction: column;
-gap: 2px;
-box-shadow: 0 12px 40px rgba(0,0,0,0.4);
-font-weight: 700;
-transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-z-index: 500;
-pointer-events: none;
-border: 1px solid rgba(255,255,255,0.2);
-}
-.achievement-toast.show { transform: translateY(-140px); }
-.achievement-toast small { color: #f8fafc; font-weight: 400; font-size: 0.85rem; opacity: 0.9; }
-@keyframes floatUpAndFade {
-0% { opacity: 1; transform: translate(-50%, -50%) scale(0.7) rotate(-8deg); }
-40% { transform: translate(-50%, -70px) scale(1.05) rotate(4deg); }
-100% { opacity: 0; transform: translate(-50%, -150px) scale(0.75) rotate(0deg); }
-}
-@keyframes idlePulse {
-0% { transform: scale(1); }
-50% { transform: scale(1.02); }
-100% { transform: scale(1); }
-}
-@keyframes spawnFly {
-0% { top: 110%; left: -10%; transform: rotate(0deg); }
-50% { top: 35%; left: 45%; transform: rotate(180deg); }
-100% { top: -20%; left: 110%; transform: rotate(360deg); }
-}
-@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 1; } 100% { opacity: 0.6; } }
+    <div class="stats-container">
+        <h1 id="global-counter">0</h1>
+    </div>
 
+    <div class="cookie-container" id="cookie-btn">
+        <div class="cookie">
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+            <div class="chip"></div>
+        </div>
+    </div>
 
-CPS: 0
-⚡ FRENZY (7x)!!
-🛠️ DEV MODE (NO SAVE)
-0
-Pro Klick: +1
-+10k Kekse
-Goldener Keks!
-👆 Plastikfinger
-Klickkraft +1 (0)
+    <script>
+        const counterEl = document.getElementById('global-counter');
+        const cookieBtn = document.getElementById('cookie-btn');
 
-10
-👵 Oma
-+1 Klick/Sek. (0)
+        const BASE_URL = "https://supabase.co";
+        const anonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind6YmNzaGNsbWttZmJ5Z3Nodmx1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MjQ3ODg3NTIsImV4cCI6MjA0MDM2NDc1Mn0.39-Y8vL6_gY-g1C5wS4_WwK4_Y-g1C5wS4_WwK4_Y-g";
 
-15
-🏭 Fabrik
-+5 Klicks/Sek. (0)
+        let localScore = parseInt(localStorage.getItem('my_cookie_clicks')) || 0;
+        let globalHighestScore = 0;
 
-100
+        const headers = {
+            "apikey": anonKey,
+            "Authorization": `Bearer ${anonKey}`,
+            "Content-Type": "application/json",
+            "Prefer": "return=representation"
+        };
 
+        // Funktion: Weltrekord laden und beim ersten Start direkt um 1 erhöhen
+        function loadScoreFromServer(isFirstLoad = false) {
+            fetch(`${BASE_URL}?id=eq.global_record`, { method: "GET", headers: headers })
+            .then(res => res.json())
+            .then(data => {
+                if (data && data.length > 0) {
+                    // WICHTIGE KORREKTUR: data[0].clicks liest den echten Wert aus der Liste aus!
+                    let serverValue = parseInt(data[0].clicks) || 0;
+                    globalHighestScore = serverValue;
+                    
+                    if (isFirstLoad) {
+                        globalHighestScore++;
+                        if (localScore < globalHighestScore) {
+                            localScore = globalHighestScore;
+                            localStorage.setItem('my_cookie_clicks', localScore);
+                        }
+                        
+                        // Den erhöhten Wert direkt an den Server senden
+                        fetch(`${BASE_URL}?id=eq.global_record`, {
+                            method: "PATCH",
+                            headers: headers,
+                            body: JSON.stringify({ clicks: globalHighestScore })
+                        }).catch(() => {});
+                    }
 
-🏆 Erfolg freigeschaltet!
-Erster Klick
-const counterEl = document.getElementById('global-counter');
-const cookieBtn = document.getElementById('cookie-btn');
-const cpsCountEl = document.getElementById('cps-count');
-const cpcDisplayEl = document.getElementById('cpc-display');
-const frenzyTimerEl = document.getElementById('frenzy-timer');
-const toastEl = document.getElementById('achievement-toast');
-const toastDescEl = document.getElementById('achievement-desc');
-const buyCursorBtn = document.getElementById('buy-cursor');
-const buyGrandmaBtn = document.getElementById('buy-grandma');
-const buyFactoryBtn = document.getElementById('buy-factory');
-const bakeryInput = document.getElementById('bakery-name');
-const devStatusEl = document.getElementById('dev-status');
-const devControlsEl = document.getElementById('dev-controls');
-const devAddCookiesBtn = document.getElementById('dev-add-cookies');
-const devSpawnGoldBtn = document.getElementById('dev-spawn-gold');
-let localScore = parseInt(localStorage.getItem('mega_cookie_clicks')) || 0;
-let cursors = parseInt(localStorage.getItem('mega_cursors')) || 0;
-let grandmas = parseInt(localStorage.getItem('mega_grandmas')) || 0;
-let factories = parseInt(localStorage.getItem('mega_factories')) || 0;
-let unlockedAchievements = JSON.parse(localStorage.getItem('mega_achievements')) || [];
-let isFrenzy = false;
-let frenzyTimeout;
-let isDevMode = false;
-const SECRET_DEV_NAME = "saysopises";
-bakeryInput.value = localStorage.getItem('mega_bakery_name') || "";
-function getCpc() {
-let baseCpc = 1 + (cursors * 1);
-return isFrenzy ? baseCpc * 7 : baseCpc;
-}
-function getCps() {
-let baseCps = (grandmas * 1) + (factories * 5);
-return isFrenzy ? baseCps * 7 : baseCps;
-}
-function getCursorPrice() { return Math.floor(10 * Math.pow(1.15, cursors)); }
-function getGrandmaPrice() { return Math.floor(15 * Math.pow(1.15, grandmas)); }
-function getFactoryPrice() { return Math.floor(100 * Math.pow(1.15, factories)); }
-function checkBakeryName() {
-const currentName = bakeryInput.value.trim().toLowerCase();
-if (currentName === SECRET_DEV_NAME) {
-if (!isDevMode) {
-isDevMode = true;
-devStatusEl.style.display = 'block';
-devControlsEl.style.display = 'flex';
-triggerAchievementToast('🛠️ Dev Mode Aktiv', 'Automatisches Speichern wurde deaktiviert.');
-}
-} else {
-if (isDevMode) {
-isDevMode = false;
-devStatusEl.style.display = 'none';
-devControlsEl.style.display = 'none';
-}
-localStorage.setItem('mega_bakery_name', bakeryInput.value);
-}
-updateUI();
-}
-bakeryInput.addEventListener('input', checkBakeryName);
-function checkAchievements() {
-const list = [
-{ id: 'first_click', title: '🍪 Keks-Pionier', desc: 'Du hast den Keks zum ersten Mal berührt.', check: () => localScore >= 1 },
-{ id: 'click_100', title: '📈 Hobby-Bäcker', desc: '100 leckere Kekse gebacken.', check: () => localScore >= 100 },
-{ id: 'click_1000', title: '👑 Keks-Imperium', desc: 'Stolzer Besitzer von 1.000 Keksen.', check: () => localScore >= 1000 },
-{ id: 'helper_1', title: '🤝 Automatisierung', desc: 'Dein erstes Fabrikat oder Gehilfe erworben.', check: () => (cursors + grandmas + factories) >= 1 }
-];
-list.forEach(ach => {
-if (!unlockedAchievements.includes(ach.id) && ach.check()) {
-unlockedAchievements.push(ach.id);
-if (!isDevMode) {
-localStorage.setItem('mega_achievements', JSON.stringify(unlockedAchievements));
-}
-triggerAchievementToast(ach.title, ach.desc);
-}
-});
-}
-function triggerAchievementToast(title, desc) {
-toastEl.querySelector('span').innerText = title.startsWith('🏆') || title.startsWith('🛠️') ? title : 🏆 ${title};
-toastDescEl.innerText = desc;
-toastEl.classList.add('show');
-setTimeout(() => toastEl.classList.remove('show'), 4000);
-}
-function updateUI() {
-counterEl.innerText = Math.floor(localScore).toLocaleString();
-cpsCountEl.innerText = CPS: ${getCps().toLocaleString()};
-cpcDisplayEl.innerText = Pro Klick: +${getCpc().toLocaleString()};
-document.getElementById('count-cursor').innerText = cursors;
-const cPrice = getCursorPrice();
-document.getElementById('price-cursor').innerText = cPrice.toLocaleString();
-buyCursorBtn.disabled = localScore < cPrice;
-document.getElementById('count-grandma').innerText = grandmas;
-const gPrice = getGrandmaPrice();
-document.getElementById('price-grandma').innerText = gPrice.toLocaleString();
-buyGrandmaBtn.disabled = localScore < gPrice;
-document.getElementById('count-factory').innerText = factories;
-const fPrice = getFactoryPrice();
-document.getElementById('price-factory').innerText = fPrice.toLocaleString();
-buyFactoryBtn.disabled = localScore < fPrice;
-checkAchievements();
-}
-function saveProgress() {
-if (isDevMode) return;
-localStorage.setItem('mega_cookie_clicks', Math.floor(localScore));
-localStorage.setItem('mega_cursors', cursors);
-localStorage.setItem('mega_grandmas', grandmas);
-localStorage.setItem('mega_factories', factories);
-}
-setInterval(() => {
-const cps = getCps();
-if (cps > 0) {
-localScore += cps / 10;
-updateUI();
-}
-}, 100);
-setInterval(saveProgress, 10000);
-function spawnParticles(clientX, clientY) {
-const rect = cookieBtn.getBoundingClientRect();
-const startX = clientX - rect.left;
-const startY = clientY - rect.top;
-for (let i = 0; i < 6; i++) {
-const crumb = document.createElement('div');
-crumb.classList.add('crumb');
-const size = Math.random() * 6 + 4;
-crumb.style.width = ${size}px;
-crumb.style.height = ${size}px;
-crumb.style.left = ${startX}px;
-crumb.style.top = ${startY}px;
-cookieBtn.appendChild(crumb);
-const angle = Math.random() * Math.PI * 2;
-const velocity = Math.random() * 6 + 4;
-let posX = startX;
-let posY = startY;
-let vx = Math.cos(angle) * velocity;
-let vy = Math.sin(angle) * velocity - 2;
-const gravity = 0.4;
-const particleInterval = setInterval(() => {
-posX += vx;
-vy += gravity;
-posY += vy;
-crumb.style.left = ${posX}px;
-crumb.style.top = ${posY}px;
-crumb.style.opacity = parseFloat(crumb.style.opacity || 1) - 0.05;
-if (posY > rect.height + 50 || parseFloat(crumb.style.opacity) <= 0) {
-clearInterval(particleInterval);
-crumb.remove();
-}
-}, 20);
-}
-}
-function createFloatingText(clientX, clientY, text, isGold = false) {
-const rect = cookieBtn.getBoundingClientRect();
-const x = clientX - rect.left;
-const y = clientY - rect.top;
-const textEl = document.createElement('div');
-textEl.classList.add('click-floating-text');
-if (isGold) textEl.classList.add('text-gold');
-textEl.innerText = text;
-textEl.style.left = ${x}px;
-textEl.style.top = ${y}px;
-cookieBtn.appendChild(textEl);
-setTimeout(() => textEl.remove(), 750);
-}
-cookieBtn.addEventListener('pointerdown', (e) => {
-e.preventDefault();
-let gain = getCpc();
-localScore += gain;
-createFloatingText(e.clientX, e.clientY, +${gain}, isFrenzy);
-spawnParticles(e.clientX, e.clientY);
-const rect = cookieBtn.getBoundingClientRect();
-const clickX = e.clientX - rect.left - rect.width / 2;
-const clickY = e.clientY - rect.top - rect.height / 2;
-const tiltX = -(clickY / (rect.height / 2)) * 12;
-const tiltY = (clickX / (rect.width / 2)) * 12;
-cookieBtn.style.transform = scale(0.90) rotateX(${tiltX}deg) rotateY(${tiltY}deg);
-counterEl.style.transform = 'scale(1.03)';
-updateUI();
-if (navigator.vibrate) navigator.vibrate(12);
-});
-window.addEventListener('pointerup', () => {
-cookieBtn.style.transform = 'scale(1) rotateX(0deg) rotateY(0deg)';
-counterEl.style.transform = 'scale(1)';
-});
-buyCursorBtn.addEventListener('click', () => {
-const price = getCursorPrice();
-if (localScore >= price) {
-localScore -= price;
-cursors++;
-updateUI();
-saveProgress();
-}
-});
-buyGrandmaBtn.addEventListener('click', () => {
-const price = getGrandmaPrice();
-if (localScore >= price) {
-localScore -= price;
-grandmas++;
-updateUI();
-saveProgress();
-}
-});
-buyFactoryBtn.addEventListener('click', () => {
-const price = getFactoryPrice();
-if (localScore >= price) {
-localScore -= price;
-factories++;
-updateUI();
-saveProgress();
-}
-});
-devAddCookiesBtn.addEventListener('click', () => {
-if (!isDevMode) return;
-localScore += 10000;
-updateUI();
-});
-devSpawnGoldBtn.addEventListener('click', () => {
-if (!isDevMode) return;
-triggerGoldenCookieSpawn();
-});
-function triggerGoldenCookieSpawn() {
-const gold = document.createElement('div');
-gold.classList.add('golden-cookie');
-gold.style.top = ${Math.random() * 60 + 20}%;
-document.body.appendChild(gold);
-gold.addEventListener('click', (e) => {
-e.stopPropagation();
-isFrenzy = true;
-frenzyTimerEl.style.display = 'block';
-createFloatingText(e.clientX, e.clientY, '7x FRENZY!', true);
-gold.remove();
-clearTimeout(frenzyTimeout);
-frenzyTimeout = setTimeout(() => {
-isFrenzy = false;
-frenzyTimerEl.style.display = 'none';
-updateUI();
-}, 7000);
-updateUI();
-});
-setTimeout(() => { if(gold.parentNode) gold.remove(); }, 10000);
-}
-function autoSpawnLoop() {
-triggerGoldenCookieSpawn();
-setTimeout(autoSpawnLoop, Math.random() * 30000 + 30000);
-}
-setTimeout(autoSpawnLoop, 30000);
-checkBakeryName();
+                    let displayScore = Math.max(localScore, globalHighestScore);
+                    counterEl.innerText = displayScore.toLocaleString();
+                }
+            })
+            .catch(err => console.error("Ladefehler:", err));
+        }
 
+        // Beim ersten Laden ausführen (+1 Bonus)
+        loadScoreFromServer(true);
+        
+        // Alle 2 Sekunden global im Hintergrund für jeden synchronisieren
+        setInterval(() => {
+            loadScoreFromServer(false);
+        }, 2000);
 
+        // Klick-Aktion
+        cookieBtn.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            
+            localScore++;
+            localStorage.setItem('my_cookie_clicks', localScore);
 
+            let displayScore = Math.max(localScore, globalHighestScore);
+            counterEl.innerText = displayScore.toLocaleString();
+
+            if (localScore > globalHighestScore) {
+                const updateUrl = `${BASE_URL}?id=eq.global_record&clicks=lt.${localScore}`;
+                
+                fetch(updateUrl, {
+                    method: "PATCH",
+                    headers: headers,
+                    body: JSON.stringify({ clicks: localScore })
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.length > 0) {
+                        // KORREKTUR: Auch hier data[0].clicks eingepflegt!
+                        globalHighestScore = parseInt(data[0].clicks) || localScore;
+                    }
+                })
+                .catch(err => console.error("Sende-Fehler:", err));
+            }
+
+            if (navigator.vibrate) {
+                navigator.vibrate(15); 
+            }
+        });
+    </script>
+</body>
+</html>
